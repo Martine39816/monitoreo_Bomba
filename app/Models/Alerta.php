@@ -36,15 +36,14 @@ class Alerta extends Model
 
     public function usuarioAtencion(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'usuario_atencion_id');
+        return $this->belongsTo(User::class, 'usuario_atencion_id');
     }
-
     public function bomba(): BelongsTo
     {
         return $this->belongsTo(Bomba::class, 'bombas_id');
     }
 
-    public function mantenimientos(): HasMany
+    public function mantenimientos(): HasMany       
     {
         return $this->hasMany(Mantenimiento::class, 'alertas_id');
     }

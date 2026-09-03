@@ -31,7 +31,7 @@ class Mantenimiento extends Model
 
     public function usuario(): BelongsTo
     {
-        return $this->belongsTo(Usuario::class, 'usuarios_id');
+        return $this->belongsTo(User::class, 'usuarios_id');
     }
 
     public function alerta(): BelongsTo
