@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sensor extends Model
 {
@@ -38,6 +39,11 @@ class Sensor extends Model
     public function lecturas(): HasMany
     {
         return $this->hasMany(Lectura::class, 'sensores_id');
+    }
+
+    public function ultimaLectura(): HasOne
+    {
+        return $this->hasOne(Lectura::class, 'sensores_id')->latestOfMany('fecha_hora');
     }
 
     public function alertas(): HasMany

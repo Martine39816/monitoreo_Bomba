@@ -13,6 +13,12 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script>
+            // Evita que las paginas de formularios queden en el historial de navegacion
+            if (window.history.replaceState) {
+                window.history.replaceState(null, null, window.location.href);
+                }
+        </script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100">
