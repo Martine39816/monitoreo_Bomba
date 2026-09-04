@@ -1,98 +1,136 @@
 <x-app-layout>
-
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Alertas
-        </h2>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Monitoreo</p>
+                <h2 class="text-xl font-bold text-slate-800 sm:text-2xl">Alertas</h2>
+            </div>
+            <a href="{{ route('alertas.create') }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                Reportar problema
+            </a>
+        </div>
     </x-slot>
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
 
             @if (session('status'))
-                <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
                     {{ session('status') }}
                 </div>
             @endif
 
-            <div class="bg-white shadow rounded-lg p-6">
+            @php
+                $totalAlertas = \App\Models\Alerta::count();
+                $alertasPendientes = \App\Models\Alerta::where('atendida', false)->count();
+                $alertasSolucionadas = \App\Models\Alerta::where('atendida', true)->count();
+            @endphp
 
-                <div class="flex justify-between items-center mb-4 flex-wrap gap-3">
-                    <h3 class="text-xl font-bold">Lista de Alertas</h3>
-
-                    <a href="{{ route('alertas.create') }}"
-                       class="bg-blue-600 text-white px-4 py-2 rounded">
-                        Reportar Problema
-                    </a>
+            <div class="grid gap-4 md:grid-cols-3">
+                <div class="metric-card">
+                    <p class="metric-label">Total</p>
+                    <p class="metric-value">{{ $totalAlertas }}</p>
+                    <div class="metric-meta">
+                        <span class="status-dot bg-blue-500"></span>
+                        <span>Eventos registrados</span>
+                    </div>
                 </div>
+                <div class="metric-card">
+                    <p class="metric-label">Pendientes</p>
+                    <p class="metric-value">{{ $alertasPendientes }}</p>
+                    <div class="metric-meta">
+                        <span class="status-dot bg-amber-500"></span>
+                        <span>Requieren atención</span>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <p class="metric-label">Solucionadas</p>
+                    <p class="metric-value">{{ $alertasSolucionadas }}</p>
+                    <div class="metric-meta">
+                        <span class="status-dot bg-emerald-500"></span>
+                        <span>Atendidas</span>
+                    </div>
+                </div>
+            </div>
 
-                <div class="mb-4 space-x-3">
+            <div class="monitor-panel">
+                <div class="flex flex-wrap items-center gap-2">
                     <a href="{{ route('alertas.index') }}"
-                       class="{{ !request('filtro') ? 'font-bold text-blue-600' : 'text-gray-500' }}">
+                       class="rounded-full px-3 py-1.5 text-sm font-medium {{ !request('filtro') ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-600' }}">
                         Todas
                     </a>
                     <a href="{{ route('alertas.index', ['filtro' => 'pendientes']) }}"
-                       class="{{ request('filtro') === 'pendientes' ? 'font-bold text-blue-600' : 'text-gray-500' }}">
-                        Solo Pendientes
+                       class="rounded-full px-3 py-1.5 text-sm font-medium {{ request('filtro') === 'pendientes' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600' }}">
+                        Solo pendientes
                     </a>
                 </div>
 
-                <table class="min-w-full border border-gray-300">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="border p-2">Fecha</th>
-                            <th class="border p-2">Tipo</th>
-                            <th class="border p-2">Descripción</th>
-                            <th class="border p-2">Bomba</th>
-                            <th class="border p-2">Estado</th>
-                            <th class="border p-2">Atendida por</th>
-                            <th class="border p-2">Acciones</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
+                <div class="mt-6 space-y-3">
                     @forelse($alertas as $alerta)
-                        <tr class="{{ !$alerta->atendida ? 'bg-red-50' : '' }}">
-                            <td class="border p-2">{{ $alerta->fecha_hora->format('d/m/Y H:i') }}</td>
-                            <td class="border p-2 capitalize">{{ str_replace('_', ' ', $alerta->tipo) }}</td>
-                            <td class="border p-2">{{ $alerta->descripcion }}</td>
-                            <td class="border p-2">{{ $alerta->bomba->nombre ?? '—' }}</td>
-                            <td class="border p-2">
-                                @if ($alerta->atendida)
-                                    <span class="text-green-600 font-semibold">Solucionada</span>
-                                @else
-                                    <span class="text-red-600 font-semibold">Pendiente</span>
-                                @endif
-                            </td>
-                            <td class="border p-2">{{ $alerta->usuarioAtencion->name ?? '—' }}</td>
-                            <td class="border p-2 space-x-2">
-                                <a href="{{ route('alertas.show', $alerta->id) }}" class="text-gray-600">Ver</a>
-                                @if (!$alerta->atendida)
-                                    <form action="{{ route('alertas.atender', $alerta->id) }}" method="POST" class="inline"
-                                          onsubmit="return confirm('¿Marcar esta alerta como solucionada?');">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="text-green-600">Marcar Solucionada</button>
-                                    </form>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="text-center p-4">
-                                No existen alertas registradas.
-                            </td>
-                        </tr>
-                    @endforelse
-                    </tbody>
-                </table>
+                        @php
+                            $estadoClase = $alerta->atendida
+                                ? 'border-emerald-200 bg-emerald-50'
+                                : 'border-amber-200 bg-amber-50';
+                            $estadoTexto = $alerta->atendida ? 'Solucionada' : 'Pendiente';
+                            $estadoDot = $alerta->atendida ? 'bg-emerald-500' : 'bg-amber-500';
+                            $tipoIcon = $alerta->atendida ? '✓' : '!';
+                            $tipoClase = $alerta->atendida ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+                        @endphp
 
-                <div class="mt-4">
-                    {{ $alertas->links() }}
+                        <div class="rounded-2xl border {{ $estadoClase }} p-4 shadow-sm transition hover:border-blue-200 hover:bg-white">
+                            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                <div class="flex items-start gap-3">
+                                    <div class="flex h-11 w-11 items-center justify-center rounded-xl {{ $tipoClase }} text-lg font-bold">
+                                        {{ $tipoIcon }}
+                                    </div>
+                                    <div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <p class="text-base font-bold text-slate-800 capitalize">{{ str_replace('_', ' ', $alerta->tipo) }}</p>
+                                            <span class="status-badge {{ $alerta->atendida ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : 'border-amber-200 bg-amber-100 text-amber-700' }}">
+                                                <span class="status-dot {{ $estadoDot }}"></span>
+                                                {{ $estadoTexto }}
+                                            </span>
+                                        </div>
+                                        <p class="mt-1 text-sm text-slate-500">{{ $alerta->fecha_hora->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col gap-1 text-sm text-slate-600">
+                                    <span><span class="font-semibold">Bomba:</span> {{ $alerta->bomba->nombre ?? '—' }}</span>
+                                    <span><span class="font-semibold">Atención:</span> {{ $alerta->usuarioAtencion->name ?? '—' }}</span>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <a href="{{ route('alertas.show', $alerta->id) }}" class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-200 hover:text-blue-700">
+                                        Ver detalle
+                                    </a>
+                                    @if (!$alerta->atendida)
+                                        <form action="{{ route('alertas.atender', $alerta->id) }}" method="POST" onsubmit="return confirm('¿Marcar esta alerta como solucionada?');">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                                Marcar solucionada
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="mt-4 rounded-xl bg-white/70 p-3 text-sm leading-6 text-slate-600">
+                                {{ $alerta->descripcion }}
+                            </div>
+                        </div>
+                    @empty
+                        <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+                            No existen alertas registradas.
+                        </div>
+                    @endforelse
                 </div>
 
+                <div class="mt-6">
+                    {{ $alertas->links() }}
+                </div>
             </div>
         </div>
     </div>
-
 </x-app-layout>
