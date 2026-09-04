@@ -1,3 +1,82 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --color-primary-50: #eff6ff;
+        --color-primary-100: #dbeafe;
+        --color-primary-500: #2563eb;
+        --color-primary-600: #1d4ed8;
+        --color-primary-700: #1e40af;
+        --color-success-50: #ecfdf5;
+        --color-success-500: #10b981;
+        --color-warning-50: #fffbeb;
+        --color-warning-500: #f59e0b;
+        --color-danger-50: #fef2f2;
+        --color-danger-500: #ef4444;
+        --color-slate-100: #f1f5f9;
+        --color-slate-200: #e2e8f0;
+        --color-slate-300: #cbd5e1;
+        --color-slate-600: #475569;
+        --color-slate-800: #1e293b;
+    }
+
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-slate-100 text-slate-800 antialiased;
+    }
+}
+
+@layer components {
+    .monitor-shell {
+        @apply min-h-screen bg-slate-100 text-slate-800;
+    }
+
+    .monitor-card {
+        @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .monitor-panel {
+        @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6;
+    }
+
+    .metric-card {
+        @apply monitor-card p-4 sm:p-5;
+    }
+
+    .metric-label {
+        @apply text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500;
+    }
+
+    .metric-value {
+        @apply mt-3 text-2xl font-bold text-slate-800 sm:text-3xl;
+    }
+
+    .metric-meta {
+        @apply mt-2 flex items-center gap-2 text-sm text-slate-500;
+    }
+
+    .status-badge {
+        @apply inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold;
+    }
+
+    .status-dot {
+        @apply h-2.5 w-2.5 rounded-full;
+    }
+
+    .progress-track {
+        @apply h-2.5 w-full overflow-hidden rounded-full bg-slate-200;
+    }
+
+    .progress-fill {
+        @apply h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600;
+    }
+
+    .subtle-link {
+        @apply inline-flex items-center gap-2 text-sm font-medium text-blue-600 transition hover:text-blue-700;
+    }
+}
