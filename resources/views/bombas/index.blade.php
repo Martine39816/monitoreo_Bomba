@@ -372,47 +372,147 @@
 
 
                                 {{-- ESTADO --}}
-                                <td class="px-6 py-5 text-center">
+<td class="px-6 py-5 text-center">
 
-                                    <span class="inline-flex items-center gap-2
-                                                 px-3 py-1.5
-                                                 rounded-full
-                                                 border
-                                                 text-xs font-bold
-                                                 {{ $estadoColor }}">
+    @if (
+        $estado === 'funcionando' ||
+        $estado === 'encendida' ||
+        $estado === 'activo' ||
+        $estado === 'activa'
+    )
 
-                                        @if ($estado === 'funcionando' || $estado === 'encendida' || $estado === 'activo' || $estado === 'activa')
+        {{-- FUNCIONANDO --}}
+        <span class="inline-flex items-center gap-2
+                     px-4 py-2
+                     rounded-full
+                     border border-green-200
+                     bg-green-50
+                     text-green-700
+                     text-xs font-bold
+                     shadow-sm">
 
-                                            <span class="relative flex h-2.5 w-2.5">
+            <span class="relative flex h-3 w-3">
 
-                                                <span class="animate-ping
-                                                             absolute inline-flex
-                                                             h-full w-full
-                                                             rounded-full
-                                                             bg-green-400 opacity-75">
-                                                </span>
+                <span class="absolute inline-flex
+                             h-full w-full
+                             rounded-full
+                             bg-green-400
+                             opacity-75
+                             animate-ping">
+                </span>
 
-                                                <span class="relative inline-flex
-                                                             rounded-full h-2.5 w-2.5
-                                                             bg-green-500">
-                                                </span>
+                <span class="relative inline-flex
+                             h-3 w-3
+                             rounded-full
+                             bg-green-500">
+                </span>
 
-                                            </span>
+            </span>
 
-                                        @else
+            FUNCIONANDO
 
-                                            <span class="text-xs">
-                                                {{ $estadoIcon }}
-                                            </span>
+        </span>
 
-                                        @endif
+    @elseif (
+        $estado === 'falla' ||
+        $estado === 'fallo' ||
+        $estado === 'error'
+    )
 
-                                        {{ $estadoTexto }}
+        {{-- FALLA --}}
+        <span class="inline-flex items-center gap-2
+                     px-4 py-2
+                     rounded-full
+                     border border-red-200
+                     bg-red-50
+                     text-red-700
+                     text-xs font-bold
+                     shadow-sm
+                     animate-pulse">
 
-                                    </span>
+            <span class="h-3 w-3
+                         rounded-full
+                         bg-red-500">
+            </span>
 
-                                </td>
+            ⚠️ FALLA
 
+        </span>
+
+    @elseif (
+        $estado === 'advertencia' ||
+        $estado === 'alerta'
+    )
+
+        {{-- ADVERTENCIA --}}
+        <span class="inline-flex items-center gap-2
+                     px-4 py-2
+                     rounded-full
+                     border border-yellow-200
+                     bg-yellow-50
+                     text-yellow-700
+                     text-xs font-bold
+                     shadow-sm">
+
+            <span class="h-3 w-3
+                         rounded-full
+                         bg-yellow-400">
+            </span>
+
+            ⚠️ ADVERTENCIA
+
+        </span>
+
+    @elseif (
+        $estado === 'apagada' ||
+        $estado === 'inactiva' ||
+        $estado === 'inactivo' ||
+        $estado === 'detenida'
+    )
+
+        {{-- APAGADA --}}
+        <span class="inline-flex items-center gap-2
+                     px-4 py-2
+                     rounded-full
+                     border border-gray-200
+                     bg-gray-100
+                     text-gray-600
+                     text-xs font-bold
+                     shadow-sm">
+
+            <span class="h-3 w-3
+                         rounded-full
+                         bg-gray-400">
+            </span>
+
+            APAGADA
+
+        </span>
+
+    @else
+
+        {{-- ESTADO DESCONOCIDO --}}
+        <span class="inline-flex items-center gap-2
+                     px-4 py-2
+                     rounded-full
+                     border border-blue-200
+                     bg-blue-50
+                     text-blue-700
+                     text-xs font-bold
+                     shadow-sm">
+
+            <span class="h-3 w-3
+                         rounded-full
+                         bg-blue-500">
+            </span>
+
+            {{ $estadoTexto }}
+
+        </span>
+
+    @endif
+
+</td>
 
                                 {{-- ENCENDIDA --}}
                                 <td class="px-6 py-5 text-center">
