@@ -277,12 +277,41 @@
                                     <div class="flex items-center gap-3">
 
                                         {{-- ICONO BOMBA --}}
-                                        <div class="w-11 h-11
-                                                    rounded-xl
-                                                    bg-blue-100
-                                                    flex items-center justify-center
-                                                    group-hover:bg-blue-200
-                                                    transition">
+                                    <div class="relative w-11 h-11 
+            rounded-xl 
+            flex items-center justify-center 
+            transition-all duration-300
+            {{ $bomba->encendido 
+                ? 'bg-green-100 shadow-lg shadow-green-200' 
+                : 'bg-blue-100 group-hover:bg-blue-200' }}">
+
+    @if ($bomba->encendido)
+
+        {{-- Efecto exterior --}}
+        <span class="absolute inset-0 rounded-xl 
+                     bg-green-400 opacity-20 
+                     animate-ping">
+        </span>
+
+    @endif
+
+    {{-- Icono de bomba --}}
+    <svg class="relative w-6 h-6 
+                {{ $bomba->encendido 
+                    ? 'text-green-600 animate-pulse' 
+                    : 'text-blue-600' }}"
+         fill="none"
+         stroke="currentColor"
+         viewBox="0 0 24 24">
+
+        <path stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
+
+    </svg>
+
+</div>
 
                                             <svg class="w-6 h-6 text-blue-600"
                                                  fill="none"
