@@ -1,43 +1,118 @@
 <x-app-layout>
 
-    <x-slot name="header">
-        <div class="flex items-center gap-3">
-            <div class="bg-blue-100 p-2 rounded-xl">
-                <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
-                </svg>
-            </div>
-
-            <div>
-                <h2 class="font-bold text-2xl text-gray-800 leading-tight">
-                    Gestión de Bombas
-                </h2>
-
-                <p class="text-sm text-gray-500">
-                    Monitoreo y administración de las bombas de agua
-                </p>
-            </div>
+```
+<x-slot name="header">
+    <div class="flex items-center gap-3">
+        <div class="bg-blue-100 p-2 rounded-xl">
+            <svg class="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
+            </svg>
         </div>
-    </x-slot>
+
+        <div>
+            <h2 class="font-bold text-2xl text-gray-800 leading-tight">
+                Gestión de Bombas
+            </h2>
+
+            <p class="text-sm text-gray-500">
+                Monitoreo y administración de las bombas de agua
+            </p>
+        </div>
+    </div>
+</x-slot>
 
 
-    {{-- CONTENIDO PRINCIPAL --}}
-    <div class="py-8 bg-gray-50 min-h-screen">
+{{-- CONTENIDO PRINCIPAL --}}
+<div class="py-8 bg-gray-50 min-h-screen">
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
 
-            {{-- MENSAJE DE ÉXITO --}}
-            @if (session('status'))
-                <div class="mb-6 flex items-center gap-3 p-4
-                            bg-green-50 border border-green-200
-                            text-green-800 rounded-xl shadow-sm">
+        {{-- MENSAJE DE ÉXITO --}}
+        @if (session('status'))
+            <div class="mb-6 flex items-center gap-3 p-4
+                        bg-green-50 border border-green-200
+                        text-green-800 rounded-xl shadow-sm">
 
-                    <div class="bg-green-100 p-2 rounded-full">
-                        <svg class="w-5 h-5 text-green-600"
+                <div class="bg-green-100 p-2 rounded-full">
+                    <svg class="w-5 h-5 text-green-600"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M5 13l4 4L19 7" />
+
+                    </svg>
+                </div>
+
+                <span class="font-medium">
+                    {{ session('status') }}
+                </span>
+            </div>
+        @endif
+
+
+        {{-- TARJETA PRINCIPAL --}}
+        <div class="bg-white rounded-2xl shadow-lg
+                    border border-gray-100 overflow-hidden">
+
+
+            {{-- ENCABEZADO --}}
+            <div class="p-6 border-b border-gray-100">
+
+                <div class="flex flex-col sm:flex-row
+                            justify-between items-start sm:items-center gap-4">
+
+                    <div>
+
+                        <div class="flex items-center gap-2">
+
+                            <div class="bg-blue-600 p-2 rounded-lg">
+
+                                <svg class="w-5 h-5 text-white"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     viewBox="0 0 24 24">
+
+                                    <path stroke-linecap="round"
+                                          stroke-linejoin="round"
+                                          stroke-width="2"
+                                          d="M13 10V3L4 14h7v7l9-11h-7z" />
+
+                                </svg>
+
+                            </div>
+
+                            <h3 class="text-xl font-bold text-gray-800">
+                                Lista de Bombas
+                            </h3>
+
+                        </div>
+
+                        <p class="text-sm text-gray-500 mt-1">
+                            Bombas registradas en el sistema de monitoreo
+                        </p>
+
+                    </div>
+
+
+                    {{-- BOTÓN NUEVA BOMBA --}}
+                    <a href="{{ route('bombas.create') }}"
+                       class="inline-flex items-center gap-2
+                              bg-blue-600 hover:bg-blue-700
+                              text-white font-semibold
+                              px-5 py-2.5 rounded-xl
+                              shadow-md hover:shadow-lg
+                              transition-all duration-200
+                              hover:-translate-y-0.5">
+
+                        <svg class="w-5 h-5"
                              fill="none"
                              stroke="currentColor"
                              viewBox="0 0 24 24">
@@ -45,312 +120,214 @@
                             <path stroke-linecap="round"
                                   stroke-linejoin="round"
                                   stroke-width="2"
-                                  d="M5 13l4 4L19 7" />
+                                  d="M12 4v16m8-8H4" />
 
                         </svg>
-                    </div>
 
-                    <span class="font-medium">
-                        {{ session('status') }}
-                    </span>
-                </div>
-            @endif
+                        Nueva Bomba
 
-
-            {{-- TARJETA PRINCIPAL --}}
-            <div class="bg-white rounded-2xl shadow-lg
-                        border border-gray-100 overflow-hidden">
-
-
-                {{-- ENCABEZADO --}}
-                <div class="p-6 border-b border-gray-100">
-
-                    <div class="flex flex-col sm:flex-row
-                                justify-between items-start sm:items-center gap-4">
-
-                        <div>
-
-                            <div class="flex items-center gap-2">
-
-                                <div class="bg-blue-600 p-2 rounded-lg">
-
-                                    <svg class="w-5 h-5 text-white"
-                                         fill="none"
-                                         stroke="currentColor"
-                                         viewBox="0 0 24 24">
-
-                                        <path stroke-linecap="round"
-                                              stroke-linejoin="round"
-                                              stroke-width="2"
-                                              d="M13 10V3L4 14h7v7l9-11h-7z" />
-
-                                    </svg>
-
-                                </div>
-
-                                <h3 class="text-xl font-bold text-gray-800">
-                                    Lista de Bombas
-                                </h3>
-
-                            </div>
-
-                            <p class="text-sm text-gray-500 mt-1">
-                                Bombas registradas en el sistema de monitoreo
-                            </p>
-
-                        </div>
-
-
-                        {{-- BOTÓN NUEVA BOMBA --}}
-                        <a href="{{ route('bombas.create') }}"
-                           class="inline-flex items-center gap-2
-                                  bg-blue-600 hover:bg-blue-700
-                                  text-white font-semibold
-                                  px-5 py-2.5 rounded-xl
-                                  shadow-md hover:shadow-lg
-                                  transition-all duration-200
-                                  hover:-translate-y-0.5">
-
-                            <svg class="w-5 h-5"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M12 4v16m8-8H4" />
-
-                            </svg>
-
-                            Nueva Bomba
-
-                        </a>
-
-                    </div>
+                    </a>
 
                 </div>
 
-
-                {{-- TABLA --}}
-                <div class="overflow-x-auto">
-
-                    <table class="min-w-full">
-
-                        {{-- CABECERA --}}
-                        <thead>
-
-                            <tr class="bg-gray-50 border-b border-gray-200">
-
-                                <th class="px-6 py-4 text-left text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    ID
-                                </th>
-
-                                <th class="px-6 py-4 text-left text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Código
-                                </th>
-
-                                <th class="px-6 py-4 text-left text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Bomba
-                                </th>
-
-                                <th class="px-6 py-4 text-left text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Centro de Salud
-                                </th>
-
-                                <th class="px-6 py-4 text-center text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Estado
-                                </th>
-
-                                <th class="px-6 py-4 text-center text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Encendida
-                                </th>
-
-                                <th class="px-6 py-4 text-center text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Modo
-                                </th>
-
-                                <th class="px-6 py-4 text-center text-xs
-                                           font-bold text-gray-500 uppercase tracking-wider">
-                                    Acciones
-                                </th>
-
-                            </tr>
-
-                        </thead>
+            </div>
 
 
-                        {{-- CUERPO --}}
-                        <tbody class="divide-y divide-gray-100">
+            {{-- TABLA --}}
+            <div class="overflow-x-auto">
 
-                        @forelse($bombas as $bomba)
+                <table class="min-w-full">
 
-                            @php
-                                $estado = strtolower($bomba->estado ?? '');
+                    {{-- CABECERA --}}
+                    <thead>
 
-                                if (
-                                    $estado === 'funcionando' ||
-                                    $estado === 'encendida' ||
-                                    $estado === 'activo' ||
-                                    $estado === 'activa'
-                                ) {
-                                    $estadoColor = 'bg-green-100 text-green-700 border-green-200';
-                                    $estadoIcon = '●';
-                                    $estadoTexto = 'Funcionando';
-                                }
-                                elseif (
-                                    $estado === 'apagada' ||
-                                    $estado === 'inactiva' ||
-                                    $estado === 'inactivo' ||
-                                    $estado === 'detenida'
-                                ) {
-                                    $estadoColor = 'bg-gray-100 text-gray-600 border-gray-200';
-                                    $estadoIcon = '●';
-                                    $estadoTexto = 'Apagada';
-                                }
-                                elseif (
-                                    $estado === 'falla' ||
-                                    $estado === 'fallo' ||
-                                    $estado === 'error'
-                                ) {
-                                    $estadoColor = 'bg-red-100 text-red-700 border-red-200';
-                                    $estadoIcon = '●';
-                                    $estadoTexto = 'Falla';
-                                }
-                                elseif (
-                                    $estado === 'advertencia' ||
-                                    $estado === 'alerta'
-                                ) {
-                                    $estadoColor = 'bg-yellow-100 text-yellow-700 border-yellow-200';
-                                    $estadoIcon = '●';
-                                    $estadoTexto = 'Advertencia';
-                                }
-                                else {
-                                    $estadoColor = 'bg-blue-100 text-blue-700 border-blue-200';
-                                    $estadoIcon = '●';
-                                    $estadoTexto = ucfirst(str_replace('_', ' ', $estado));
-                                }
-                            @endphp
+                        <tr class="bg-gray-50 border-b border-gray-200">
 
+                            {{-- ID --}}
+                            <th class="px-6 py-4 text-left text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                ID
+                            </th>
 
-                            <tr class="hover:bg-blue-50/50
-                                       transition-all duration-200
-                                       group">
+                            {{-- CÓDIGO --}}
+                            <th class="px-6 py-4 text-left text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Código
+                            </th>
 
+                            {{-- BOMBA --}}
+                            <th class="px-6 py-4 text-left text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Bomba
+                            </th>
 
-                                {{-- ID --}}
-                                <td class="px-6 py-5 whitespace-nowrap">
+                            {{-- CENTRO DE SALUD --}}
+                            <th class="px-6 py-4 text-left text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Centro de Salud
+                            </th>
 
-                                    <span class="font-bold text-gray-700">
-                                        #{{ $bomba->id }}
-                                    </span>
+                            {{-- ESTADO --}}
+                            <th class="px-6 py-4 text-center text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
 
-                                </td>
+                            {{-- MONITOREO --}}
+                            <th class="px-6 py-4 text-center text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Monitoreo
+                            </th>
 
+                            {{-- ENCENDIDA --}}
+                            <th class="px-6 py-4 text-center text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Encendida
+                            </th>
 
-                                {{-- CÓDIGO --}}
-                                <td class="px-6 py-5 whitespace-nowrap">
+                            {{-- MODO --}}
+                            <th class="px-6 py-4 text-center text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Modo
+                            </th>
 
-                                    <span class="inline-flex items-center
-                                                 px-3 py-1 rounded-lg
-                                                 bg-gray-100
-                                                 text-gray-700
-                                                 font-mono text-sm font-semibold">
+                            {{-- ACCIONES --}}
+                            <th class="px-6 py-4 text-center text-xs
+                                       font-bold text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
 
-                                        {{ $bomba->codigo }}
+                        </tr>
 
-                                    </span>
-
-                                </td>
+                    </thead>
 
 
-                                {{-- NOMBRE --}}
-                                <td class="px-6 py-5 whitespace-nowrap">
+                    {{-- CUERPO --}}
+                    <tbody class="divide-y divide-gray-100">
 
-                                    <div class="flex items-center gap-3">
+                    @forelse($bombas as $bomba)
 
-                                        {{-- ICONO BOMBA --}}
-                                    <div class="relative w-11 h-11 
-            rounded-xl 
-            flex items-center justify-center 
-            transition-all duration-300
-            {{ $bomba->encendido 
-                ? 'bg-green-100 shadow-lg shadow-green-200' 
-                : 'bg-blue-100 group-hover:bg-blue-200' }}">
+                        @php
 
-    @if ($bomba->encendido)
+                            $estado = strtolower($bomba->estado ?? '');
 
-        {{-- Efecto exterior --}}
-        <span class="absolute inset-0 rounded-xl 
-                     bg-green-400 opacity-20 
-                     animate-ping">
-        </span>
+                            if (
+                                $estado === 'funcionando' ||
+                                $estado === 'encendida' ||
+                                $estado === 'activo' ||
+                                $estado === 'activa'
+                            ) {
 
-    @endif
+                                $estadoColor = 'bg-green-100 text-green-700 border-green-200';
+                                $estadoIcon = '●';
+                                $estadoTexto = 'Funcionando';
 
-    {{-- Icono de bomba --}}
-    <svg class="relative w-6 h-6 
-                {{ $bomba->encendido 
-                    ? 'text-green-600 animate-pulse' 
-                    : 'text-blue-600' }}"
-         fill="none"
-         stroke="currentColor"
-         viewBox="0 0 24 24">
+                            }
+                            elseif (
+                                $estado === 'apagada' ||
+                                $estado === 'inactiva' ||
+                                $estado === 'inactivo' ||
+                                $estado === 'detenida'
+                            ) {
 
-        <path stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
+                                $estadoColor = 'bg-gray-100 text-gray-600 border-gray-200';
+                                $estadoIcon = '●';
+                                $estadoTexto = 'Apagada';
 
-    </svg>
+                            }
+                            elseif (
+                                $estado === 'falla' ||
+                                $estado === 'fallo' ||
+                                $estado === 'error'
+                            ) {
 
-</div>
+                                $estadoColor = 'bg-red-100 text-red-700 border-red-200';
+                                $estadoIcon = '●';
+                                $estadoTexto = 'Falla';
 
-                                            <svg class="w-6 h-6 text-blue-600"
-                                                 fill="none"
-                                                 stroke="currentColor"
-                                                 viewBox="0 0 24 24">
+                            }
+                            elseif (
+                                $estado === 'advertencia' ||
+                                $estado === 'alerta'
+                            ) {
 
-                                                <path stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      stroke-width="2"
-                                                      d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
+                                $estadoColor = 'bg-yellow-100 text-yellow-700 border-yellow-200';
+                                $estadoIcon = '●';
+                                $estadoTexto = 'Advertencia';
 
-                                            </svg>
+                            }
+                            else {
 
-                                        </div>
+                                $estadoColor = 'bg-blue-100 text-blue-700 border-blue-200';
+                                $estadoIcon = '●';
+                                $estadoTexto = ucfirst(str_replace('_', ' ', $estado));
 
+                            }
 
-                                        <div>
-
-                                            <div class="font-bold text-gray-800">
-                                                {{ $bomba->nombre }}
-                                            </div>
-
-                                            <div class="text-xs text-gray-400">
-                                                Sistema de bombeo
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-                                </td>
+                        @endphp
 
 
-                                {{-- CENTRO DE SALUD --}}
-                                <td class="px-6 py-5">
+                        <tr class="hover:bg-blue-50/50
+                                   transition-all duration-200
+                                   group">
 
-                                    <div class="flex items-center gap-2">
 
-                                        <svg class="w-5 h-5 text-gray-400"
+                            {{-- ID --}}
+                            <td class="px-6 py-5 whitespace-nowrap">
+
+                                <span class="font-bold text-gray-700">
+                                    #{{ $bomba->id }}
+                                </span>
+
+                            </td>
+
+
+                            {{-- CÓDIGO --}}
+                            <td class="px-6 py-5 whitespace-nowrap">
+
+                                <span class="inline-flex items-center
+                                             px-3 py-1 rounded-lg
+                                             bg-gray-100
+                                             text-gray-700
+                                             font-mono text-sm font-semibold">
+
+                                    {{ $bomba->codigo }}
+
+                                </span>
+
+                            </td>
+
+
+                            {{-- NOMBRE DE BOMBA --}}
+                            <td class="px-6 py-5 whitespace-nowrap">
+
+                                <div class="flex items-center gap-3">
+
+                                    {{-- ICONO BOMBA ANIMADO --}}
+                                    <div class="relative w-11 h-11
+                                                rounded-xl
+                                                flex items-center justify-center
+                                                transition-all duration-300
+                                                {{ $bomba->encendido
+                                                    ? 'bg-green-100 shadow-lg shadow-green-200'
+                                                    : 'bg-blue-100 group-hover:bg-blue-200' }}">
+
+                                        @if ($bomba->encendido)
+
+                                            {{-- EFECTO EXTERIOR --}}
+                                            <span class="absolute inset-0 rounded-xl
+                                                         bg-green-400 opacity-20
+                                                         animate-ping">
+                                            </span>
+
+                                        @endif
+
+
+                                        {{-- ICONO --}}
+                                        <svg class="relative w-6 h-6
+                                                    {{ $bomba->encendido
+                                                        ? 'text-green-600 animate-pulse'
+                                                        : 'text-blue-600' }}"
                                              fill="none"
                                              stroke="currentColor"
                                              viewBox="0 0 24 24">
@@ -358,271 +335,460 @@
                                             <path stroke-linecap="round"
                                                   stroke-linejoin="round"
                                                   stroke-width="2"
-                                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4" />
+                                                  d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
 
                                         </svg>
 
-                                        <span class="text-gray-700">
-                                            {{ $bomba->centroSalud->nombre ?? '—' }}
-                                        </span>
+                                    </div>
+
+
+                                    <div>
+
+                                        <div class="font-bold text-gray-800">
+                                            {{ $bomba->nombre }}
+                                        </div>
+
+                                        <div class="text-xs text-gray-400">
+                                            Sistema de bombeo
+                                        </div>
 
                                     </div>
 
-                                </td>
+                                </div>
+
+                            </td>
 
 
-                                {{-- ESTADO --}}
-<td class="px-6 py-5 text-center">
+                            {{-- CENTRO DE SALUD --}}
+                            <td class="px-6 py-5">
 
-    @if (
-        $estado === 'funcionando' ||
-        $estado === 'encendida' ||
-        $estado === 'activo' ||
-        $estado === 'activa'
-    )
+                                <div class="flex items-center gap-2">
 
-        {{-- FUNCIONANDO --}}
-        <span class="inline-flex items-center gap-2
-                     px-4 py-2
-                     rounded-full
-                     border border-green-200
-                     bg-green-50
-                     text-green-700
-                     text-xs font-bold
-                     shadow-sm">
+                                    <svg class="w-5 h-5 text-gray-400"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         viewBox="0 0 24 24">
 
-            <span class="relative flex h-3 w-3">
+                                        <path stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              stroke-width="2"
+                                              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4" />
 
-                <span class="absolute inline-flex
-                             h-full w-full
-                             rounded-full
-                             bg-green-400
-                             opacity-75
-                             animate-ping">
-                </span>
+                                    </svg>
 
-                <span class="relative inline-flex
-                             h-3 w-3
-                             rounded-full
-                             bg-green-500">
-                </span>
+                                    <span class="text-gray-700">
+                                        {{ $bomba->centroSalud->nombre ?? '—' }}
+                                    </span>
 
-            </span>
+                                </div>
 
-            FUNCIONANDO
+                            </td>
 
-        </span>
 
-    @elseif (
-        $estado === 'falla' ||
-        $estado === 'fallo' ||
-        $estado === 'error'
-    )
+                            {{-- ESTADO --}}
+                            <td class="px-6 py-5 text-center">
 
-        {{-- FALLA --}}
-        <span class="inline-flex items-center gap-2
-                     px-4 py-2
-                     rounded-full
-                     border border-red-200
-                     bg-red-50
-                     text-red-700
-                     text-xs font-bold
-                     shadow-sm
-                     animate-pulse">
+                                @if (
+                                    $estado === 'funcionando' ||
+                                    $estado === 'encendida' ||
+                                    $estado === 'activo' ||
+                                    $estado === 'activa'
+                                )
 
-            <span class="h-3 w-3
-                         rounded-full
-                         bg-red-500">
-            </span>
+                                    {{-- FUNCIONANDO --}}
+                                    <span class="inline-flex items-center gap-2
+                                                 px-4 py-2
+                                                 rounded-full
+                                                 border border-green-200
+                                                 bg-green-50
+                                                 text-green-700
+                                                 text-xs font-bold
+                                                 shadow-sm">
 
-            ⚠️ FALLA
+                                        <span class="relative flex h-3 w-3">
 
-        </span>
-
-    @elseif (
-        $estado === 'advertencia' ||
-        $estado === 'alerta'
-    )
-
-        {{-- ADVERTENCIA --}}
-        <span class="inline-flex items-center gap-2
-                     px-4 py-2
-                     rounded-full
-                     border border-yellow-200
-                     bg-yellow-50
-                     text-yellow-700
-                     text-xs font-bold
-                     shadow-sm">
-
-            <span class="h-3 w-3
-                         rounded-full
-                         bg-yellow-400">
-            </span>
-
-            ⚠️ ADVERTENCIA
-
-        </span>
-
-    @elseif (
-        $estado === 'apagada' ||
-        $estado === 'inactiva' ||
-        $estado === 'inactivo' ||
-        $estado === 'detenida'
-    )
-
-        {{-- APAGADA --}}
-        <span class="inline-flex items-center gap-2
-                     px-4 py-2
-                     rounded-full
-                     border border-gray-200
-                     bg-gray-100
-                     text-gray-600
-                     text-xs font-bold
-                     shadow-sm">
-
-            <span class="h-3 w-3
-                         rounded-full
-                         bg-gray-400">
-            </span>
-
-            APAGADA
-
-        </span>
-
-    @else
-
-        {{-- ESTADO DESCONOCIDO --}}
-        <span class="inline-flex items-center gap-2
-                     px-4 py-2
-                     rounded-full
-                     border border-blue-200
-                     bg-blue-50
-                     text-blue-700
-                     text-xs font-bold
-                     shadow-sm">
-
-            <span class="h-3 w-3
-                         rounded-full
-                         bg-blue-500">
-            </span>
-
-            {{ $estadoTexto }}
-
-        </span>
-
-    @endif
-
-</td>
-
-                                {{-- ENCENDIDA --}}
-                                <td class="px-6 py-5 text-center">
-
-                                    @if ($bomba->encendido)
-
-                                        <div class="inline-flex items-center gap-2
-                                                    bg-green-50
-                                                    border border-green-200
-                                                    text-green-700
-                                                    px-3 py-1.5
-                                                    rounded-full
-                                                    font-semibold text-sm">
-
-                                            <span class="relative flex h-2.5 w-2.5">
-
-                                                <span class="animate-ping
-                                                             absolute inline-flex
-                                                             h-full w-full
-                                                             rounded-full
-                                                             bg-green-400 opacity-75">
-                                                </span>
-
-                                                <span class="relative inline-flex
-                                                             rounded-full h-2.5 w-2.5
-                                                             bg-green-500">
-                                                </span>
-
-                                            </span>
-
-                                            ENCENDIDA
-
-                                        </div>
-
-                                    @else
-
-                                        <div class="inline-flex items-center gap-2
-                                                    bg-gray-100
-                                                    border border-gray-200
-                                                    text-gray-500
-                                                    px-3 py-1.5
-                                                    rounded-full
-                                                    font-semibold text-sm">
-
-                                            <span class="w-2.5 h-2.5
+                                            <span class="absolute inline-flex
+                                                         h-full w-full
                                                          rounded-full
-                                                         bg-gray-400">
+                                                         bg-green-400
+                                                         opacity-75
+                                                         animate-ping">
                                             </span>
 
-                                            APAGADA
-
-                                        </div>
-
-                                    @endif
-
-                                </td>
-
-
-                                {{-- MODO --}}
-                                <td class="px-6 py-5 text-center">
-
-                                    @if ($bomba->modo_operacion)
-
-                                        <span class="inline-flex items-center
-                                                     gap-2 px-3 py-1.5
-                                                     rounded-lg
-                                                     bg-purple-50
-                                                     border border-purple-200
-                                                     text-purple-700
-                                                     text-xs font-bold">
-
-                                            ⚙️ Automático
+                                            <span class="relative inline-flex
+                                                         h-3 w-3
+                                                         rounded-full
+                                                         bg-green-500">
+                                            </span>
 
                                         </span>
 
-                                    @else
+                                        FUNCIONANDO
 
-                                        <span class="inline-flex items-center
-                                                     gap-2 px-3 py-1.5
-                                                     rounded-lg
-                                                     bg-orange-50
-                                                     border border-orange-200
-                                                     text-orange-700
-                                                     text-xs font-bold">
+                                    </span>
 
-                                            ✋ Manual
+                                @elseif (
+                                    $estado === 'falla' ||
+                                    $estado === 'fallo' ||
+                                    $estado === 'error'
+                                )
+
+                                    {{-- FALLA --}}
+                                    <span class="inline-flex items-center gap-2
+                                                 px-4 py-2
+                                                 rounded-full
+                                                 border border-red-200
+                                                 bg-red-50
+                                                 text-red-700
+                                                 text-xs font-bold
+                                                 shadow-sm
+                                                 animate-pulse">
+
+                                        <span class="h-3 w-3
+                                                     rounded-full
+                                                     bg-red-500">
+                                        </span>
+
+                                        ⚠️ FALLA
+
+                                    </span>
+
+                                @elseif (
+                                    $estado === 'advertencia' ||
+                                    $estado === 'alerta'
+                                )
+
+                                    {{-- ADVERTENCIA --}}
+                                    <span class="inline-flex items-center gap-2
+                                                 px-4 py-2
+                                                 rounded-full
+                                                 border border-yellow-200
+                                                 bg-yellow-50
+                                                 text-yellow-700
+                                                 text-xs font-bold
+                                                 shadow-sm">
+
+                                        <span class="h-3 w-3
+                                                     rounded-full
+                                                     bg-yellow-400">
+                                        </span>
+
+                                        ⚠️ ADVERTENCIA
+
+                                    </span>
+
+                                @elseif (
+                                    $estado === 'apagada' ||
+                                    $estado === 'inactiva' ||
+                                    $estado === 'inactivo' ||
+                                    $estado === 'detenida'
+                                )
+
+                                    {{-- APAGADA --}}
+                                    <span class="inline-flex items-center gap-2
+                                                 px-4 py-2
+                                                 rounded-full
+                                                 border border-gray-200
+                                                 bg-gray-100
+                                                 text-gray-600
+                                                 text-xs font-bold
+                                                 shadow-sm">
+
+                                        <span class="h-3 w-3
+                                                     rounded-full
+                                                     bg-gray-400">
+                                        </span>
+
+                                        APAGADA
+
+                                    </span>
+
+                                @else
+
+                                    {{-- ESTADO DESCONOCIDO --}}
+                                    <span class="inline-flex items-center gap-2
+                                                 px-4 py-2
+                                                 rounded-full
+                                                 border border-blue-200
+                                                 bg-blue-50
+                                                 text-blue-700
+                                                 text-xs font-bold
+                                                 shadow-sm">
+
+                                        <span class="h-3 w-3
+                                                     rounded-full
+                                                     bg-blue-500">
+                                        </span>
+
+                                        {{ $estadoTexto }}
+
+                                    </span>
+
+                                @endif
+
+                            </td>
+
+
+                            {{-- MONITOREO --}}
+                            <td class="px-6 py-5">
+
+                                <div class="flex justify-center gap-2">
+
+                                    {{-- NIVEL --}}
+                                    <div
+                                        title="Nivel de agua"
+                                        class="w-9 h-9
+                                               flex items-center justify-center
+                                               rounded-lg
+                                               bg-blue-50
+                                               border border-blue-200
+                                               text-blue-600
+                                               hover:bg-blue-100
+                                               hover:scale-110
+                                               transition-all duration-200">
+
+                                        <span class="text-lg">💧</span>
+
+                                    </div>
+
+
+                                    {{-- TEMPERATURA --}}
+                                    <div
+                                        title="Temperatura"
+                                        class="w-9 h-9
+                                               flex items-center justify-center
+                                               rounded-lg
+                                               bg-orange-50
+                                               border border-orange-200
+                                               text-orange-600
+                                               hover:bg-orange-100
+                                               hover:scale-110
+                                               transition-all duration-200">
+
+                                        <span class="text-lg">🌡️</span>
+
+                                    </div>
+
+
+                                    {{-- VIBRACIÓN --}}
+                                    <div
+                                        title="Vibración"
+                                        class="w-9 h-9
+                                               flex items-center justify-center
+                                               rounded-lg
+                                               bg-purple-50
+                                               border border-purple-200
+                                               text-purple-600
+                                               hover:bg-purple-100
+                                               hover:scale-110
+                                               transition-all duration-200">
+
+                                        <span class="text-lg">📳</span>
+
+                                    </div>
+
+
+                                    {{-- CORRIENTE --}}
+                                    <div
+                                        title="Corriente"
+                                        class="w-9 h-9
+                                               flex items-center justify-center
+                                               rounded-lg
+                                               bg-yellow-50
+                                               border border-yellow-200
+                                               text-yellow-600
+                                               hover:bg-yellow-100
+                                               hover:scale-110
+                                               transition-all duration-200">
+
+                                        <span class="text-lg">⚡</span>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            {{-- ENCENDIDA --}}
+                            <td class="px-6 py-5 text-center">
+
+                                @if ($bomba->encendido)
+
+                                    <div class="inline-flex items-center gap-2
+                                                bg-green-50
+                                                border border-green-200
+                                                text-green-700
+                                                px-3 py-1.5
+                                                rounded-full
+                                                font-semibold text-sm">
+
+                                        <span class="relative flex h-2.5 w-2.5">
+
+                                            <span class="animate-ping
+                                                         absolute inline-flex
+                                                         h-full w-full
+                                                         rounded-full
+                                                         bg-green-400 opacity-75">
+                                            </span>
+
+                                            <span class="relative inline-flex
+                                                         rounded-full h-2.5 w-2.5
+                                                         bg-green-500">
+                                            </span>
 
                                         </span>
 
-                                    @endif
+                                        ENCENDIDA
 
-                                </td>
+                                    </div>
+
+                                @else
+
+                                    <div class="inline-flex items-center gap-2
+                                                bg-gray-100
+                                                border border-gray-200
+                                                text-gray-500
+                                                px-3 py-1.5
+                                                rounded-full
+                                                font-semibold text-sm">
+
+                                        <span class="w-2.5 h-2.5
+                                                     rounded-full
+                                                     bg-gray-400">
+                                        </span>
+
+                                        APAGADA
+
+                                    </div>
+
+                                @endif
+
+                            </td>
 
 
-                                {{-- ACCIONES --}}
-                                <td class="px-6 py-5">
+                            {{-- MODO --}}
+                            <td class="px-6 py-5 text-center">
 
-                                    <div class="flex justify-center items-center gap-2">
+                                @if ($bomba->modo_operacion)
+
+                                    <span class="inline-flex items-center
+                                                 gap-2 px-3 py-1.5
+                                                 rounded-lg
+                                                 bg-purple-50
+                                                 border border-purple-200
+                                                 text-purple-700
+                                                 text-xs font-bold">
+
+                                        ⚙️ Automático
+
+                                    </span>
+
+                                @else
+
+                                    <span class="inline-flex items-center
+                                                 gap-2 px-3 py-1.5
+                                                 rounded-lg
+                                                 bg-orange-50
+                                                 border border-orange-200
+                                                 text-orange-700
+                                                 text-xs font-bold">
+
+                                        ✋ Manual
+
+                                    </span>
+
+                                @endif
+
+                            </td>
 
 
-                                        {{-- VER --}}
-                                        <a href="{{ route('bombas.show', $bomba->id) }}"
-                                           title="Ver bomba"
-                                           class="p-2.5
-                                                  bg-gray-100
-                                                  hover:bg-blue-100
-                                                  text-gray-600
-                                                  hover:text-blue-600
-                                                  rounded-lg
-                                                  transition-all duration-200">
+                            {{-- ACCIONES --}}
+                            <td class="px-6 py-5">
+
+                                <div class="flex justify-center items-center gap-2">
+
+
+                                    {{-- VER --}}
+                                    <a href="{{ route('bombas.show', $bomba->id) }}"
+                                       title="Ver bomba"
+                                       class="p-2.5
+                                              bg-gray-100
+                                              hover:bg-blue-100
+                                              text-gray-600
+                                              hover:text-blue-600
+                                              rounded-lg
+                                              transition-all duration-200">
+
+                                        <svg class="w-5 h-5"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+
+                                        </svg>
+
+                                    </a>
+
+
+                                    {{-- EDITAR --}}
+                                    <a href="{{ route('bombas.edit', $bomba->id) }}"
+                                       title="Editar bomba"
+                                       class="p-2.5
+                                              bg-gray-100
+                                              hover:bg-yellow-100
+                                              text-gray-600
+                                              hover:text-yellow-600
+                                              rounded-lg
+                                              transition-all duration-200">
+
+                                        <svg class="w-5 h-5"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+
+                                        </svg>
+
+                                    </a>
+
+
+                                    {{-- ELIMINAR --}}
+                                    <form action="{{ route('bombas.destroy', $bomba->id) }}"
+                                          method="POST"
+                                          class="inline"
+                                          onsubmit="return confirm('¿Eliminar esta bomba?');">
+
+                                        @csrf
+                                        @method('DELETE')
+
+                                        <button type="submit"
+                                                title="Eliminar bomba"
+                                                class="p-2.5
+                                                       bg-gray-100
+                                                       hover:bg-red-100
+                                                       text-gray-600
+                                                       hover:text-red-600
+                                                       rounded-lg
+                                                       transition-all duration-200">
 
                                             <svg class="w-5 h-5"
                                                  fill="none"
@@ -632,141 +798,72 @@
                                                 <path stroke-linecap="round"
                                                       stroke-linejoin="round"
                                                       stroke-width="2"
-                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-
-                                                <path stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      stroke-width="2"
-                                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
 
                                             </svg>
 
-                                        </a>
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
 
 
-                                        {{-- EDITAR --}}
-                                        <a href="{{ route('bombas.edit', $bomba->id) }}"
-                                           title="Editar bomba"
-                                           class="p-2.5
-                                                  bg-gray-100
-                                                  hover:bg-yellow-100
-                                                  text-gray-600
-                                                  hover:text-yellow-600
-                                                  rounded-lg
-                                                  transition-all duration-200">
+                    @empty
 
-                                            <svg class="w-5 h-5"
-                                                 fill="none"
-                                                 stroke="currentColor"
-                                                 viewBox="0 0 24 24">
+                        <tr>
 
-                                                <path stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      stroke-width="2"
-                                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" />
+                            <td colspan="9" class="px-6 py-16 text-center">
 
-                                                <path stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      stroke-width="2"
-                                                      d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                <div class="flex flex-col items-center">
 
-                                            </svg>
+                                    <div class="bg-gray-100 p-5 rounded-full mb-4">
 
-                                        </a>
+                                        <svg class="w-10 h-10 text-gray-400"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             viewBox="0 0 24 24">
 
+                                            <path stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  stroke-width="2"
+                                                  d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
 
-                                        {{-- ELIMINAR --}}
-                                        <form action="{{ route('bombas.destroy', $bomba->id) }}"
-                                              method="POST"
-                                              class="inline"
-                                              onsubmit="return confirm('¿Eliminar esta bomba?');">
-
-                                            @csrf
-                                            @method('DELETE')
-
-                                            <button type="submit"
-                                                    title="Eliminar bomba"
-                                                    class="p-2.5
-                                                           bg-gray-100
-                                                           hover:bg-red-100
-                                                           text-gray-600
-                                                           hover:text-red-600
-                                                           rounded-lg
-                                                           transition-all duration-200">
-
-                                                <svg class="w-5 h-5"
-                                                     fill="none"
-                                                     stroke="currentColor"
-                                                     viewBox="0 0 24 24">
-
-                                                    <path stroke-linecap="round"
-                                                          stroke-linejoin="round"
-                                                          stroke-width="2"
-                                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-
-                                                </svg>
-
-                                            </button>
-
-                                        </form>
+                                        </svg>
 
                                     </div>
 
-                                </td>
+                                    <h3 class="text-lg font-bold text-gray-700">
+                                        No existen bombas registradas
+                                    </h3>
 
-                            </tr>
+                                    <p class="text-sm text-gray-500 mt-1">
+                                        Comienza registrando una nueva bomba.
+                                    </p>
 
+                                </div>
 
-                        @empty
+                            </td>
 
-                            <tr>
+                        </tr>
 
-                                <td colspan="8" class="px-6 py-16 text-center">
+                    @endforelse
 
-                                    <div class="flex flex-col items-center">
+                    </tbody>
 
-                                        <div class="bg-gray-100 p-5 rounded-full mb-4">
-
-                                            <svg class="w-10 h-10 text-gray-400"
-                                                 fill="none"
-                                                 stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-
-                                                <path stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      stroke-width="2"
-                                                      d="M12 3v18m0-18c-1.5 2-4 3-6 3m6-3c1.5 2 4 3 6 3M5 9h14M5 15h14" />
-
-                                            </svg>
-
-                                        </div>
-
-                                        <h3 class="text-lg font-bold text-gray-700">
-                                            No existen bombas registradas
-                                        </h3>
-
-                                        <p class="text-sm text-gray-500 mt-1">
-                                            Comienza registrando una nueva bomba.
-                                        </p>
-
-                                    </div>
-
-                                </td>
-
-                            </tr>
-
-                        @endforelse
-
-                        </tbody>
-
-                    </table>
-
-                </div>
+                </table>
 
             </div>
 
         </div>
 
     </div>
+
+</div>
+```
 
 </x-app-layout>
