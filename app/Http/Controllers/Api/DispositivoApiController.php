@@ -17,34 +17,47 @@ class DispositivoApiController extends Controller
      * El ESP32 envia una lectura individual de un sensor.
      */
     public function guardarLectura(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'sensores_id' => ['required', 'exists:sensores,id'],
-            'valor_medido' => ['required', 'numeric', 'gte:0'],
-        ]);
+{
+    $validated = $request->validate([
+        'sensores_id' => ['required', 'exists:sensores,id'],
+        'valor_medido' => ['required', 'numeric', 'gte:0'],
+    ]);
 
-        // Verifica que el sensor pertenezca a un dispositivo autenticado
-        // (evita que un dispositivo mande datos de sensores que no son suyos)
-        $dispositivo = $request->attributes->get('dispositivo');
-        $sensor = Sensor::findOrFail($validated['sensores_id']);
+    $dispositivo = $request->attributes->get('dispositivo');
+    $sensor = Sensor::with('bomba')->findOrFail($validated['sensores_id']);
 
-        if ($sensor->dispositivos_iot_id !== $dispositivo->id) {
-            return response()->json(['message' => 'Este sensor no pertenece a tu dispositivo.'], 403);
-        }
-
-        $lectura = Lectura::create([
-            'sensores_id' => $validated['sensores_id'],
-            'valor_medido' => $validated['valor_medido'],
-            'fecha_hora' => now(),
-        ]);
-
-        $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
-
-        return response()->json([
-            'guardado' => true,
-            'alerta_generada' => $alertaGenerada,
-        ], 201);
+    if ($sensor->dispositivos_iot_id !== $dispositivo->id) {
+        return response()->json(['message' => 'Este sensor no pertenece a tu dispositivo.'], 403);
     }
+
+    // Sensores que solo tienen sentido con la bomba encendida.
+    // Si la bomba está apagada, se descarta la lectura (no se guarda basura).
+    $tiposDependientesDeBomba = ['corriente', 'vibracion'];
+
+    if (in_array($sensor->tipo, $tiposDependientesDeBomba, true)) {
+        $bombaEncendida = $sensor->bomba?->encendido ?? false;
+
+        if (! $bombaEncendida) {
+            return response()->json([
+                'guardado' => false,
+                'motivo' => 'Bomba apagada: lectura de '.$sensor->tipo.' descartada.',
+            ], 200);
+        }
+    }
+
+    $lectura = Lectura::create([
+        'sensores_id' => $validated['sensores_id'],
+        'valor_medido' => $validated['valor_medido'],
+        'fecha_hora' => now(),
+    ]);
+
+    $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
+
+    return response()->json([
+        'guardado' => true,
+        'alerta_generada' => $alertaGenerada,
+    ], 201);
+}
 
     /**
      * GET /api/bombas/{id}/estado
