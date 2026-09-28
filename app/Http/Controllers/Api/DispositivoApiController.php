@@ -17,47 +17,50 @@ class DispositivoApiController extends Controller
      * El ESP32 envia una lectura individual de un sensor.
      */
     public function guardarLectura(Request $request): JsonResponse
-{
-    $validated = $request->validate([
-        'sensores_id' => ['required', 'exists:sensores,id'],
-        'valor_medido' => ['required', 'numeric', 'gte:0'],
-    ]);
+    {
+        $validated = $request->validate([
+            'sensores_id' => ['required', 'exists:sensores,id'],
+            'valor_medido' => ['required', 'numeric', 'gte:0'],
+        ]);
 
-    $dispositivo = $request->attributes->get('dispositivo');
-    $sensor = Sensor::with('bomba')->findOrFail($validated['sensores_id']);
+        $dispositivo = $request->attributes->get('dispositivo');
+        $sensor = Sensor::with('bomba')->findOrFail($validated['sensores_id']);
 
-    if ($sensor->dispositivos_iot_id !== $dispositivo->id) {
-        return response()->json(['message' => 'Este sensor no pertenece a tu dispositivo.'], 403);
-    }
+        if ($sensor->dispositivos_iot_id !== $dispositivo->id) {
+            return response()->json(['message' => 'Este sensor no pertenece a tu dispositivo.'], 403);
+        }
 
-    // Sensores que solo tienen sentido con la bomba encendida.
-    // Si la bomba está apagada, se descarta la lectura (no se guarda basura).
-    $tiposDependientesDeBomba = ['corriente', 'vibracion'];
+        $bomba = $sensor->bomba;
+        $cambioDeEstado = false;
 
-    if (in_array($sensor->tipo, $tiposDependientesDeBomba, true)) {
-        $bombaEncendida = $sensor->bomba?->encendido ?? false;
+        // La corriente es la fuente de verdad de si la bomba esta funcionando.
+        if ($sensor->tipo === 'corriente' && $bomba) {
+            $cambioDeEstado = $this->actualizarEstadoFuncionamiento($bomba, (float) $validated['valor_medido']);
+        }
 
-        if (! $bombaEncendida) {
+        // Corriente y vibracion no aportan datos con la bomba detenida:
+        // se descartan, salvo la lectura que justo marco un cambio de estado.
+        if (in_array($sensor->tipo, ['corriente', 'vibracion'], true)
+            && $bomba && ! $bomba->funcionando && ! $cambioDeEstado) {
             return response()->json([
                 'guardado' => false,
-                'motivo' => 'Bomba apagada: lectura de '.$sensor->tipo.' descartada.',
+                'motivo' => 'Bomba detenida: lectura de '.$sensor->tipo.' descartada.',
             ], 200);
         }
+
+        $lectura = Lectura::create([
+            'sensores_id' => $validated['sensores_id'],
+            'valor_medido' => $validated['valor_medido'],
+            'fecha_hora' => now(),
+        ]);
+
+        $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
+
+        return response()->json([
+            'guardado' => true,
+            'alerta_generada' => $alertaGenerada,
+        ], 201);
     }
-
-    $lectura = Lectura::create([
-        'sensores_id' => $validated['sensores_id'],
-        'valor_medido' => $validated['valor_medido'],
-        'fecha_hora' => now(),
-    ]);
-
-    $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
-
-    return response()->json([
-        'guardado' => true,
-        'alerta_generada' => $alertaGenerada,
-    ], 201);
-}
 
     /**
      * GET /api/bombas/{id}/estado
@@ -73,8 +76,35 @@ class DispositivoApiController extends Controller
 
         return response()->json([
             'encendido' => (bool) $bomba->encendido,
+            'funcionando' => (bool) $bomba->funcionando,
             'modo_operacion' => (int) $bomba->modo_operacion, // 0 = manual, 1 = automatico
         ]);
+    }
+
+    /**
+     * Decide si la bomba esta funcionando segun la corriente medida.
+     * Devuelve true si el estado cambio con esta lectura.
+     */
+    private function actualizarEstadoFuncionamiento(Bomba $bomba, float $corriente): bool
+    {
+        $umbralOn = config('monitoreo.corriente_umbral_encendido');
+        $umbralOff = config('monitoreo.corriente_umbral_apagado');
+
+        $nuevoEstado = $bomba->funcionando;
+
+        if (! $bomba->funcionando && $corriente >= $umbralOn) {
+            $nuevoEstado = true;
+        } elseif ($bomba->funcionando && $corriente < $umbralOff) {
+            $nuevoEstado = false;
+        }
+
+        if ($nuevoEstado === $bomba->funcionando) {
+            return false;
+        }
+
+        $bomba->update(['funcionando' => $nuevoEstado]); // el Observer registra el evento
+
+        return true;
     }
 
     /**
