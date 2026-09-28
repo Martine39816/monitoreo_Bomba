@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bomba;
 use App\Models\CentroSalud;
+use App\Support\TextPatterns;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -94,11 +95,11 @@ class BombaController extends Controller
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([
-            'codigo' => ['required', 'string', 'max:30', Rule::unique('bombas', 'codigo')->ignore($ignorarId)],
-            'nombre' => ['required', 'string', 'max:100'],
-            'marca' => ['nullable', 'string', 'max:100'],
-            'modelo' => ['nullable', 'string', 'max:100'],
-            'serie' => ['required', 'string', 'max:80', Rule::unique('bombas', 'serie')->ignore($ignorarId)],
+            'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('bombas', 'codigo')->ignore($ignorarId)],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
+            'marca' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'modelo' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'serie' => ['required', 'string', 'max:80', 'regex:'.TextPatterns::CODIGO, Rule::unique('bombas', 'serie')->ignore($ignorarId)],
             'potencia_hp' => ['nullable', 'numeric', 'gt:0'],
             'voltaje_nominal' => ['nullable', 'numeric', 'gt:0'],
             'corriente_nominal' => ['nullable', 'numeric', 'gte:0'],
@@ -111,12 +112,19 @@ class BombaController extends Controller
             'modo_operacion' => ['required', 'boolean'],
             'encendido' => ['required', 'boolean'],
             'estado' => ['required', Rule::in(self::ESTADOS)],
-            'tanque_codigo' => ['nullable', 'string', 'max:30'],
+            'tanque_codigo' => ['nullable', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO],
             'tanque_capacidad_litros' => ['nullable', 'numeric', 'gt:0'],
             'tanque_altura_metros' => ['nullable', 'numeric', 'gte:0'],
             'tanque_diametro_metros' => ['nullable', 'numeric', 'gte:0'],
             'observaciones' => ['nullable', 'string'],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
+        ], [
+            'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',
+            'marca.regex' => 'La marca no puede tener espacios dobles ni caracteres especiales.',
+            'modelo.regex' => 'El modelo no puede tener espacios dobles ni caracteres especiales.',
+            'serie.regex' => 'La serie solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'tanque_codigo.regex' => 'El código del tanque solo puede contener letras, números, guiones y puntos (sin espacios).',
         ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CentroSalud;
+use App\Support\TextPatterns;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -68,10 +69,15 @@ class CentroSaludController extends Controller
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([
-            'codigo' => ['required', 'string', 'max:45', Rule::unique('centros_salud', 'codigo')->ignore($ignorarId)],
-            'nombre' => ['required', 'string', 'max:45'],
-            'direccion' => ['required', 'string', 'max:255'],
-            'telefono' => ['nullable', 'string', 'max:20'],
+            'codigo' => ['required', 'string', 'max:45', 'regex:'.TextPatterns::CODIGO, Rule::unique('centros_salud', 'codigo')->ignore($ignorarId)],
+            'nombre' => ['required', 'string', 'max:45', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
+            'direccion' => ['required', 'string', 'max:255', 'regex:'.TextPatterns::DIRECCION],
+            'telefono' => ['nullable', 'regex:'.TextPatterns::TELEFONO_BOLIVIA],
+        ], [
+            'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',
+            'direccion.regex' => 'La dirección tiene caracteres no permitidos o espacios dobles.',
+            'telefono.regex' => 'El teléfono debe ser un celular boliviano válido: 8 dígitos, empezando con 6 o 7 (ej. 71234567).',
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Bomba;
 use App\Models\DispositivoIot;
 use App\Models\Sensor;
+use App\Support\TextPatterns;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -78,20 +79,28 @@ class SensorController extends Controller
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([
-            'codigo' => ['required', 'string', 'max:30', Rule::unique('sensores', 'codigo')->ignore($ignorarId)],
-            'nombre' => ['required', 'string', 'max:120'],
+            'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('sensores', 'codigo')->ignore($ignorarId)],
+            'nombre' => ['required', 'string', 'max:120', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
             'tipo' => ['required', Rule::in(self::TIPOS)],
-            'marca' => ['nullable', 'string', 'max:80'],
-            'modelo' => ['nullable', 'string', 'max:80'],
+            'marca' => ['nullable', 'string', 'max:80', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'modelo' => ['nullable', 'string', 'max:80', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
             'unidad_medida' => ['nullable', 'string', 'max:30'],
             'valor_minimo' => ['nullable', 'numeric', 'lt:valor_maximo'],
             'valor_maximo' => ['nullable', 'numeric', 'gt:valor_minimo'],
             'precision_sensor' => ['nullable', 'numeric'],
             'estado' => ['required', Rule::in(self::ESTADOS)],
             'fecha_instalacion' => ['nullable', 'date'],
-            'ubicacion' => ['nullable', 'string', 'max:100'],
+            'ubicacion' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
             'dispositivos_iot_id' => ['required', 'exists:dispositivos_iot,id'],
             'bombas_id' => ['required', 'exists:bombas,id'],
+        ], [
+            'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',
+            'marca.regex' => 'La marca no puede tener espacios dobles ni caracteres especiales.',
+            'modelo.regex' => 'El modelo no puede tener espacios dobles ni caracteres especiales.',
+            'ubicacion.regex' => 'La ubicación no puede tener espacios dobles ni caracteres especiales.',
+            'valor_minimo.lt' => 'El valor mínimo debe ser menor que el valor máximo.',
+            'valor_maximo.gt' => 'El valor máximo debe ser mayor que el valor mínimo.',
         ]);
     }
 }

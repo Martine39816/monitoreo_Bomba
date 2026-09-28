@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CentroSalud;
 use App\Models\User;
 use App\Support\PasswordPolicy;
+use App\Support\TextPatterns;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -29,13 +30,17 @@ class UserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:100'],
-            'apellido' => ['required', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
+            'apellido' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
             'email' => ['required', 'email', 'max:120', 'unique:usuarios,correo'],
-            'telefono' => ['nullable', 'string', 'max:20'],
+            'telefono' => ['nullable', 'regex:'.TextPatterns::TELEFONO_BOLIVIA],
             'rol' => ['required', Rule::in(User::ROLES)],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
             'password' => ['required', 'confirmed', PasswordPolicy::reglas()],
+        ], [
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios simples (sin números).',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios simples (sin números).',
+            'telefono.regex' => 'El teléfono debe ser un celular boliviano válido: 8 dígitos, empezando con 6 o 7 (ej. 71234567).',
         ]);
 
         User::create([
@@ -69,14 +74,18 @@ class UserController extends Controller
     public function update(Request $request, User $user): RedirectResponse
     {
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:100'],
-            'apellido' => ['required', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
+            'apellido' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
             'email' => ['required', 'email', 'max:120', Rule::unique('usuarios', 'correo')->ignore($user->id)],
-            'telefono' => ['nullable', 'string', 'max:20'],
+            'telefono' => ['nullable', 'regex:'.TextPatterns::TELEFONO_BOLIVIA],
             'rol' => ['required', Rule::in(User::ROLES)],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
             'estado' => ['required', 'boolean'],
             'password' => ['nullable', 'confirmed', PasswordPolicy::reglas()],
+        ], [
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios simples (sin números).',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios simples (sin números).',
+            'telefono.regex' => 'El teléfono debe ser un celular boliviano válido: 8 dígitos, empezando con 6 o 7 (ej. 71234567).',
         ]);
 
         $user->fill([

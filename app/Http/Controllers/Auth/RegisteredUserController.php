@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\PasswordPolicy;
+use App\Support\TextPatterns;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,12 +35,15 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:100'],
-            'apellido' => ['required', 'string', 'max:100'],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
+            'apellido' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_PERSONA],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:120', 'unique:usuarios,correo'],
             'rol' => ['required', Rule::in(User::ROLES)],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
             'password' => ['required', 'confirmed', PasswordPolicy::reglas()],
+        ], [
+            'nombre.regex' => 'El nombre solo puede contener letras y espacios simples (sin números).',
+            'apellido.regex' => 'El apellido solo puede contener letras y espacios simples (sin números).',
         ]);
 
         $user = User::create([
