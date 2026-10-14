@@ -81,55 +81,10 @@
 
             {{-- ==========================================
                  CONTROL RÁPIDO DE BOMBAS
+                 (componente con filtros, búsqueda y paginación)
                  ========================================== --}}
-            @if (Auth::user()->tieneRol('administrador', 'tecnico') && $bombasControl->count() > 0)
-                <div class="bg-white shadow-sm rounded-xl border border-gray-100 p-6">
-                    <h3 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                        <span>⚡</span> Control Rápido de Bombas
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        @foreach ($bombasControl as $bomba)
-                            <div class="border border-gray-100 rounded-xl p-4 flex items-center justify-between
-                                {{ $bomba->encendido ? 'bg-green-50/50' : '' }}">
-                                <div>
-                                    <p class="font-semibold text-gray-800">{{ $bomba->nombre }}</p>
-                                    <p class="text-xs text-gray-500">{{ $bomba->centroSalud->nombre ?? '' }}</p>
-                                    <p class="text-sm mt-1.5">
-                                        @if ($bomba->encendido)
-                                            <span class="inline-flex items-center gap-1.5 text-green-700 font-semibold">
-                                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                                Encendida
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1.5 text-gray-500">
-                                                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
-                                                Apagada
-                                            </span>
-                                        @endif
-                                    </p>
-                                </div>
-                                @can('controlar', $bomba)
-                                    <div class="flex gap-2">
-                                        <form action="{{ route('bombas.encender', $bomba->id) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" {{ $bomba->encendido ? 'disabled' : '' }}
-                                                class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors {{ $bomba->encendido ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700' }}">
-                                                Encender
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('bombas.apagar', $bomba->id) }}" method="POST">
-                                            @csrf
-                                            <button type="submit" {{ !$bomba->encendido ? 'disabled' : '' }}
-                                                class="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors {{ !$bomba->encendido ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700' }}">
-                                                Apagar
-                                            </button>
-                                        </form>
-                                    </div>
-                                @endcan
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
+            @if (Auth::user()->tieneRol('administrador', 'tecnico'))
+                <x-control-rapido-bombas />
             @endif
 
             {{-- ==========================================

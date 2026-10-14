@@ -33,6 +33,7 @@ class BombaApiController extends Controller
                 'codigo' => $bomba->codigo,
                 'nombre' => $bomba->nombre,
                 'encendido' => $bomba->encendido,
+                'funcionando' => $bomba->funcionando,
                 'modo_operacion' => $bomba->modo_operacion,
                 'estado' => $bomba->estado,
                 'centro_salud' => $bomba->centroSalud?->nombre,

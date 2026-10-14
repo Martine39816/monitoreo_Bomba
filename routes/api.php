@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AlertaApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BombaApiController;
 use App\Http\Controllers\Api\DispositivoApiController;
@@ -21,5 +22,7 @@ Route::prefix('mobile')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/bombas', [BombaApiController::class, 'index']);
+        Route::get('/alertas', [AlertaApiController::class, 'index']);
+        Route::post('/alertas/{alerta}/solucionar', [AlertaApiController::class, 'solucionar']);
     });
 });

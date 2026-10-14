@@ -9,6 +9,7 @@ use App\Models\Lectura;
 use App\Models\Sensor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class DispositivoApiController extends Controller
 {
@@ -29,6 +30,12 @@ class DispositivoApiController extends Controller
         if ($sensor->dispositivos_iot_id !== $dispositivo->id) {
             return response()->json(['message' => 'Este sensor no pertenece a tu dispositivo.'], 403);
         }
+
+        // Se anota que el sensor "dio senales de vida", incluso si la lectura
+        // se descarta mas abajo. Corriente y vibracion no dejan filas en la base
+        // con la bomba detenida, asi que sin este registro no se podria saber
+        // si un sensor esta desconectado o simplemente la bomba esta apagada.
+        $this->registrarSensorVisto($sensor);
 
         $bomba = $sensor->bomba;
         $cambioDeEstado = false;
@@ -82,27 +89,58 @@ class DispositivoApiController extends Controller
     }
 
     /**
+     * Guarda la marca de tiempo de la ultima lectura recibida de un sensor.
+     * Usa la cache de archivos para no depender de la tabla 'cache' ni de
+     * cambios en la base de datos.
+     */
+    private function registrarSensorVisto(Sensor $sensor): void
+    {
+        Cache::store('file')->put(
+            'sensor_visto_'.$sensor->id,
+            now()->timestamp,
+            now()->addDay()
+        );
+    }
+
+    /**
      * Decide si la bomba esta funcionando segun la corriente medida.
+     * Un cambio de estado solo se acepta tras varias lecturas consecutivas
+     * que lo confirmen, para que un pico de ruido aislado no lo provoque.
      * Devuelve true si el estado cambio con esta lectura.
      */
     private function actualizarEstadoFuncionamiento(Bomba $bomba, float $corriente): bool
     {
-        $umbralOn = config('monitoreo.corriente_umbral_encendido');
-        $umbralOff = config('monitoreo.corriente_umbral_apagado');
+        $umbralOn = (float) config('monitoreo.corriente_umbral_encendido');
+        $umbralOff = (float) config('monitoreo.corriente_umbral_apagado');
+        $confirmaciones = max(1, (int) config('monitoreo.corriente_lecturas_confirmacion'));
+        $ventana = max(10, (int) config('monitoreo.corriente_confirmacion_ventana_segundos'));
 
-        $nuevoEstado = $bomba->funcionando;
+        // Estado que sugiere esta lectura (null = confirma el estado actual).
+        $sugerido = null;
 
         if (! $bomba->funcionando && $corriente >= $umbralOn) {
-            $nuevoEstado = true;
+            $sugerido = true;
         } elseif ($bomba->funcionando && $corriente < $umbralOff) {
-            $nuevoEstado = false;
+            $sugerido = false;
         }
 
-        if ($nuevoEstado === $bomba->funcionando) {
+        $cache = Cache::store('file');
+        $clave = 'bomba_'.$bomba->id.'_confirmacion_estado';
+
+        if ($sugerido === null) {
+            $cache->forget($clave); // una lectura normal rompe la racha
             return false;
         }
 
-        $bomba->update(['funcionando' => $nuevoEstado]); // el Observer registra el evento
+        $cuenta = (int) $cache->get($clave, 0) + 1;
+
+        if ($cuenta < $confirmaciones) {
+            $cache->put($clave, $cuenta, now()->addSeconds($ventana));
+            return false;
+        }
+
+        $cache->forget($clave);
+        $bomba->update(['funcionando' => $sugerido]); // el Observer registra el evento
 
         return true;
     }

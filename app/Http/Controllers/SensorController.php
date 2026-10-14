@@ -16,11 +16,36 @@ class SensorController extends Controller
     private const TIPOS = ['temperatura', 'vibracion', 'corriente', 'presion', 'nivel'];
     private const ESTADOS = ['activo', 'inactivo', 'mantenimiento', 'fuera_servicio', 'desconectado'];
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $sensores = Sensor::with('bomba', 'dispositivoIot')->orderBy('id', 'desc')->get();
+        $usuario = $request->user();
 
-        return view('sensores.index', compact('sensores'));
+        $query = Sensor::with(['bomba.centroSalud', 'dispositivoIot', 'ultimaLectura'])
+            ->orderBy('id', 'desc');
+
+        $bombas = Bomba::orderBy('nombre');
+
+        // Solo el Administrador ve los sensores de todos los centros.
+        if (! $usuario->esAdministrador()) {
+            $query->whereHas('bomba', fn ($q) => $q->where('centros_salud_id', $usuario->centros_salud_id));
+            $bombas->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->input('tipo'));
+        }
+        if ($request->filled('bomba_id')) {
+            $query->where('bombas_id', $request->input('bomba_id'));
+        }
+        if ($request->filled('q')) {
+            $texto = '%'.$request->input('q').'%';
+            $query->where(fn ($q) => $q->where('nombre', 'like', $texto)->orWhere('codigo', 'like', $texto));
+        }
+
+        return view('sensores.index', [
+            'sensores' => $query->paginate(15)->withQueryString(),
+            'bombas' => $bombas->get(),
+        ]);
     }
 
     public function create(): View

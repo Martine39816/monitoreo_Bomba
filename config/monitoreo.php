@@ -22,7 +22,17 @@ return [
     // La bomba se considera FUNCIONANDO cuando la corriente sube de UMBRAL_ON,
     // y DETENIDA cuando baja de UMBRAL_OFF. Usar dos valores distintos evita
     // que el estado "parpadee" si la corriente oscila cerca del limite.
-    'corriente_umbral_encendido' => (float) env('BOMBA_CORRIENTE_UMBRAL_ON', 0.5),
-    'corriente_umbral_apagado' => (float) env('BOMBA_CORRIENTE_UMBRAL_OFF', 0.3),
+    // AJUSTADO PARA PROTOTIPO 0.5HP (0.20A en vacio)
+    'corriente_umbral_encendido' => (float) env('BOMBA_CORRIENTE_UMBRAL_ON', 0.10),
+    'corriente_umbral_apagado' => (float) env('BOMBA_CORRIENTE_UMBRAL_OFF', 0.05),
+
+    // Lecturas consecutivas que deben confirmar un cambio de estado antes de
+    // aceptarlo. Evita que un pico de ruido aislado marque la bomba como
+    // encendida (con lecturas cada 10 s, 2 lecturas = ~20 s de confirmacion).
+    'corriente_lecturas_confirmacion' => (int) env('BOMBA_CORRIENTE_CONFIRMACIONES', 2),
+
+    // Si pasa este tiempo sin una lectura que continue la racha, la cuenta
+    // de confirmacion se reinicia.
+    'corriente_confirmacion_ventana_segundos' => (int) env('BOMBA_CORRIENTE_VENTANA_SEG', 90),
 
 ];

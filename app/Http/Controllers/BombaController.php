@@ -17,9 +17,28 @@ class BombaController extends Controller
 
     private const ESTADOS = ['activo', 'inactivo', 'mantenimiento', 'fuera_servicio', 'desconectado'];
 
-    public function index(): View
+    /**
+     * Cuántas lecturas recientes se muestran por sensor en la ficha de la bomba.
+     */
+    private const LECTURAS_POR_SENSOR = 8;
+
+    /**
+     * Cuántas alertas se muestran en la ficha de la bomba.
+     */
+    private const ALERTAS_RECIENTES = 15;
+
+    public function index(Request $request): View
     {
-        $bombas = Bomba::with('centroSalud')->orderBy('id', 'desc')->get();
+        $usuario = $request->user();
+
+        $query = Bomba::with('centroSalud')->orderBy('id', 'desc');
+
+        // Solo el Administrador ve las bombas de todos los centros.
+        if (! $usuario->esAdministrador()) {
+            $query->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
+        $bombas = $query->get();
 
         return view('bombas.index', compact('bombas'));
     }
@@ -40,17 +59,62 @@ class BombaController extends Controller
         return redirect()->route('bombas.index')->with('status', 'Bomba registrada correctamente.');
     }
 
-    public function show(Bomba $bomba): View
+    public function show(Request $request, Bomba $bomba): View
     {
+        $this->authorize('view', $bomba);
+
         $bomba->load('centroSalud', 'sensores');
 
         $salud = \App\Models\VistaSaludBomba::where('bomba_id', $bomba->id)->first();
 
-        return view('bombas.show', compact('bomba', 'salud'));
+        // Últimas N lecturas de cada sensor de esta bomba (no el historial completo).
+        foreach ($bomba->sensores as $sensor) {
+            $sensor->setRelation(
+                'ultimasLecturas',
+                $sensor->lecturas()
+                    ->orderByDesc('fecha_hora')
+                    ->limit(self::LECTURAS_POR_SENSOR)
+                    ->get()
+            );
+        }
+
+        // Pendientes primero; dentro de cada grupo, las más recientes arriba.
+        $alertas = $bomba->alertas()
+            ->with('sensor:id,tipo,codigo')
+            ->orderBy('atendida')
+            ->orderByDesc('fecha_hora')
+            ->limit(self::ALERTAS_RECIENTES)
+            ->get();
+
+        // Datos para el selector Centro de Salud -> Bomba (respeta el rol).
+        $usuario = $request->user();
+        $visibles = Bomba::with('centroSalud:id,nombre')->orderBy('nombre');
+
+        if (! $usuario->esAdministrador()) {
+            $visibles->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
+        $selector = $visibles->get()->map(fn (Bomba $b) => [
+            'id' => $b->id,
+            'codigo' => $b->codigo,
+            'nombre' => $b->nombre,
+            'centro_id' => $b->centros_salud_id,
+            'centro' => $b->centroSalud?->nombre ?? 'Sin centro',
+        ])->values();
+
+        $centrosSelector = $selector
+            ->unique('centro_id')
+            ->map(fn ($b) => ['id' => $b['centro_id'], 'nombre' => $b['centro']])
+            ->sortBy('nombre')
+            ->values();
+
+        return view('bombas.show', compact('bomba', 'salud', 'alertas', 'selector', 'centrosSelector'));
     }
 
     public function edit(Bomba $bomba): View
     {
+        $this->authorize('update', $bomba);
+
         $centros = CentroSalud::orderBy('nombre')->get();
 
         return view('bombas.edit', ['bomba' => $bomba, 'centros' => $centros, 'estados' => self::ESTADOS]);
@@ -58,6 +122,8 @@ class BombaController extends Controller
 
     public function update(Request $request, Bomba $bomba): RedirectResponse
     {
+        $this->authorize('update', $bomba);
+
         $validated = $this->validarDatos($request, $bomba->id);
 
         $bomba->update($validated);
@@ -67,6 +133,8 @@ class BombaController extends Controller
 
     public function destroy(Bomba $bomba): RedirectResponse
     {
+        $this->authorize('delete', $bomba);
+
         $bomba->delete();
 
         return redirect()->route('bombas.index')->with('status', 'Bomba eliminada.');
