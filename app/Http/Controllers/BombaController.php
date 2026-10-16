@@ -111,7 +111,7 @@ class BombaController extends Controller
         return view('bombas.show', compact('bomba', 'salud', 'alertas', 'selector', 'centrosSelector'));
     }
 
-    public function edit(Bomba $bomba): View
+    public function edit(Request $request, Bomba $bomba): View
     {
         $this->authorize('update', $bomba);
 
@@ -131,7 +131,7 @@ class BombaController extends Controller
         return redirect()->route('bombas.index')->with('status', 'Bomba actualizada correctamente.');
     }
 
-    public function destroy(Bomba $bomba): RedirectResponse
+    public function destroy(Request $request, Bomba $bomba): RedirectResponse
     {
         $this->authorize('delete', $bomba);
 

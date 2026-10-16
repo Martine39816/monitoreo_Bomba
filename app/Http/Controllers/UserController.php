@@ -113,6 +113,15 @@ class UserController extends Controller
             return back()->withErrors(['delete' => 'No puedes eliminar tu propia cuenta mientras estas conectado.']);
         }
 
+        // Evitar que queden cero administradores en el sistema.
+        if ($user->rol === 'administrador') {
+            $totalAdministradores = User::where('rol', 'administrador')->count();
+
+            if ($totalAdministradores <= 1) {
+                return back()->withErrors(['delete' => 'No se puede eliminar el último administrador del sistema.']);
+            }
+        }
+
         $user->delete();
 
         return redirect()->route('users.index')->with('status', 'Usuario eliminado.');

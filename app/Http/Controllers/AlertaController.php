@@ -26,6 +26,12 @@ class AlertaController extends Controller
             $query->where('atendida', false);
         }
 
+        if (! $request->user()->esAdministrador()) {
+            $query->whereHas('bomba', function ($q) use ($request) {
+                $q->where('centros_salud_id', $request->user()->centros_salud_id);
+            });
+        }
+
         $alertas = $query->paginate(20)->withQueryString();
 
         return view('alertas.index', compact('alertas'));
@@ -61,8 +67,10 @@ class AlertaController extends Controller
         return redirect()->route('alertas.index')->with('status', 'Alerta reportada correctamente.');
     }
 
-    public function show(Alerta $alerta): View
+    public function show(Request $request, Alerta $alerta): View
     {
+        $this->verificarCentro($request, $alerta);
+
         $alerta->load('bomba', 'sensor', 'usuarioAtencion');
 
         return view('alertas.show', compact('alerta'));
@@ -70,6 +78,8 @@ class AlertaController extends Controller
 
     public function atender(Request $request, Alerta $alerta): RedirectResponse
     {
+        $this->verificarCentro($request, $alerta);
+
         $alerta->update([
             'atendida' => true,
             'fecha_atencion' => now(),
@@ -77,5 +87,20 @@ class AlertaController extends Controller
         ]);
 
         return redirect()->route('alertas.index')->with('status', 'Alerta marcada como solucionada.');
+    }
+
+    /**
+     * Verifica que el usuario (si no es administrador) pertenezca al mismo
+     * centro de salud que la bomba asociada a la alerta.
+     */
+    private function verificarCentro(Request $request, Alerta $alerta): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->esAdministrador()) {
+            return;
+        }
+
+        abort_if($alerta->bomba?->centros_salud_id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a esta alerta.');
     }
 }

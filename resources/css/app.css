@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Evita el parpadeo de elementos Alpine antes de inicializarse */
+[x-cloak] {
+    display: none !important;
+}
+
 /* ==========================================
    MENÚ LATERAL - FONDO SÓLIDO
    ========================================== */

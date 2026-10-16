@@ -75,14 +75,14 @@
 
                     <div>
                         <x-input-label for="password" value="Nueva Contraseña (opcional)" />
-                        <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" />
+                        <x-password-input id="password" name="password" class="mt-1 block w-full" />
                         <x-input-error :messages="$errors->get('password')" class="mt-2" />
                         <p class="text-xs text-gray-500 mt-1">Déjalo en blanco si no quieres cambiarla.</p>
                     </div>
 
                     <div>
                         <x-input-label for="password_confirmation" value="Confirmar Nueva Contraseña" />
-                        <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" />
+                        <x-password-input id="password_confirmation" name="password_confirmation" class="mt-1 block w-full" />
                     </div>
 
                     <div class="flex items-center gap-4">

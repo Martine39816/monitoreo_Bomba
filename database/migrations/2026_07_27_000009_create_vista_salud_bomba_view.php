@@ -7,8 +7,12 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // SQLite no soporta "CREATE OR REPLACE VIEW", por lo que usamos
+        // DROP + CREATE, que es compatible tanto con MySQL como con SQLite.
+        DB::statement("DROP VIEW IF EXISTS vista_salud_bomba");
+
         DB::statement("
-            CREATE OR REPLACE VIEW vista_salud_bomba AS
+            CREATE VIEW vista_salud_bomba AS
             SELECT
                 b.id AS bomba_id,
                 b.codigo AS codigo_bomba,

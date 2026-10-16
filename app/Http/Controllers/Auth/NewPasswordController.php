@@ -40,8 +40,15 @@ class NewPasswordController extends Controller
         // Here we will attempt to reset the user's password. If it is successful we
         // will update the password on an actual user model and persist it to the
         // database. Otherwise we will parse the error and return the response.
+        // Se usa la columna real 'correo' porque el proveedor de usuarios busca
+        // por las claves del arreglo de credenciales.
         $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
+            [
+                'correo' => $request->input('email'),
+                'password' => $request->input('password'),
+                'password_confirmation' => $request->input('password_confirmation'),
+                'token' => $request->input('token'),
+            ],
             function (User $user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),

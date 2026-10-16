@@ -14,9 +14,14 @@ class DispositivoIotController extends Controller
 {
     private const ESTADOS = ['activo', 'inactivo', 'mantenimiento', 'fuera_servicio', 'desconectado'];
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $dispositivos = DispositivoIot::with('centroSalud')->orderBy('id', 'desc')->get();
+        $dispositivos = DispositivoIot::with('centroSalud')
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('centros_salud_id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('id', 'desc')
+            ->get();
 
         return view('dispositivos.index', compact('dispositivos'));
     }
@@ -37,15 +42,19 @@ class DispositivoIotController extends Controller
         return redirect()->route('dispositivos.index')->with('status', 'Dispositivo IoT registrado correctamente.');
     }
 
-    public function show(DispositivoIot $dispositivo): View
+    public function show(Request $request, DispositivoIot $dispositivo): View
     {
+        $this->verificarCentro($request, $dispositivo);
+
         $dispositivo->load('centroSalud', 'sensores');
 
         return view('dispositivos.show', compact('dispositivo'));
     }
 
-    public function edit(DispositivoIot $dispositivo): View
+    public function edit(Request $request, DispositivoIot $dispositivo): View
     {
+        $this->verificarCentro($request, $dispositivo);
+
         $centros = CentroSalud::orderBy('nombre')->get();
 
         return view('dispositivos.edit', ['dispositivo' => $dispositivo, 'centros' => $centros, 'estados' => self::ESTADOS]);
@@ -53,6 +62,8 @@ class DispositivoIotController extends Controller
 
     public function update(Request $request, DispositivoIot $dispositivo): RedirectResponse
     {
+        $this->verificarCentro($request, $dispositivo);
+
         $validated = $this->validarDatos($request, $dispositivo->id);
 
         $dispositivo->update($validated);
@@ -60,8 +71,10 @@ class DispositivoIotController extends Controller
         return redirect()->route('dispositivos.index')->with('status', 'Dispositivo IoT actualizado correctamente.');
     }
 
-    public function destroy(DispositivoIot $dispositivo): RedirectResponse
+    public function destroy(Request $request, DispositivoIot $dispositivo): RedirectResponse
     {
+        $this->verificarCentro($request, $dispositivo);
+
         if ($dispositivo->sensores()->exists()) {
             return back()->withErrors([
                 'delete' => 'No se puede eliminar: este dispositivo todavía tiene sensores asociados.',
@@ -71,6 +84,21 @@ class DispositivoIotController extends Controller
         $dispositivo->delete();
 
         return redirect()->route('dispositivos.index')->with('status', 'Dispositivo IoT eliminado.');
+    }
+
+    /**
+     * Verifica que el usuario (si no es administrador) pertenezca al mismo
+     * centro de salud que el dispositivo.
+     */
+    private function verificarCentro(Request $request, DispositivoIot $dispositivo): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->esAdministrador()) {
+            return;
+        }
+
+        abort_if($dispositivo->centros_salud_id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a este dispositivo.');
     }
 
     /**

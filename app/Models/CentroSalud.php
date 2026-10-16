@@ -16,7 +16,7 @@ class CentroSalud extends Model
 
     public function usuarios(): HasMany
     {
-        return $this->hasMany(Usuario::class, 'centros_salud_id');
+        return $this->hasMany(User::class, 'centros_salud_id');
     }
 
     public function bombas(): HasMany

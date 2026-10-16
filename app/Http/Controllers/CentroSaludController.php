@@ -11,9 +11,14 @@ use Illuminate\View\View;
 
 class CentroSaludController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $centros = CentroSalud::orderBy('nombre')->get();
+        $centros = CentroSalud::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
 
         return view('centros.index', compact('centros'));
     }
@@ -32,20 +37,26 @@ class CentroSaludController extends Controller
         return redirect()->route('centros.index')->with('status', 'Centro de salud registrado correctamente.');
     }
 
-    public function show(CentroSalud $centro): View
+    public function show(Request $request, CentroSalud $centro): View
     {
+        $this->verificarCentro($request, $centro);
+
         $centro->load('usuarios', 'bombas', 'dispositivosIot');
 
         return view('centros.show', compact('centro'));
     }
 
-    public function edit(CentroSalud $centro): View
+    public function edit(Request $request, CentroSalud $centro): View
     {
+        $this->verificarCentro($request, $centro);
+
         return view('centros.edit', compact('centro'));
     }
 
     public function update(Request $request, CentroSalud $centro): RedirectResponse
     {
+        $this->verificarCentro($request, $centro);
+
         $validated = $this->validarDatos($request, $centro->id);
 
         $centro->update($validated);
@@ -53,8 +64,10 @@ class CentroSaludController extends Controller
         return redirect()->route('centros.index')->with('status', 'Centro de salud actualizado correctamente.');
     }
 
-    public function destroy(CentroSalud $centro): RedirectResponse
+    public function destroy(Request $request, CentroSalud $centro): RedirectResponse
     {
+        $this->verificarCentro($request, $centro);
+
         if ($centro->usuarios()->exists() || $centro->bombas()->exists() || $centro->dispositivosIot()->exists()) {
             return back()->withErrors([
                 'delete' => 'No se puede eliminar este centro: todavía tiene usuarios, bombas o dispositivos asignados.',
@@ -64,6 +77,20 @@ class CentroSaludController extends Controller
         $centro->delete();
 
         return redirect()->route('centros.index')->with('status', 'Centro de salud eliminado.');
+    }
+
+    /**
+     * Verifica que el usuario (si no es administrador) solo acceda a su propio centro.
+     */
+    private function verificarCentro(Request $request, CentroSalud $centro): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->esAdministrador()) {
+            return;
+        }
+
+        abort_if($centro->id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a este centro de salud.');
     }
 
     private function validarDatos(Request $request, ?int $ignorarId = null): array

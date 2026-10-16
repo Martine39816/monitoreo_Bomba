@@ -67,14 +67,14 @@
 
                     <div>
                         <x-input-label for="password" value="Contraseña" />
-                        <x-text-input id="password" name="password" type="password" class="mt-1 block w-full" required />
+                        <x-password-input id="password" name="password" class="mt-1 block w-full" required />
                         <x-input-error :messages="$errors->get('password')" class="mt-2" />
                         <p class="text-xs text-gray-500 mt-1">Mínimo 8 caracteres, mayúsculas, minúsculas, números y símbolos.</p>
                     </div>
 
                     <div>
                         <x-input-label for="password_confirmation" value="Confirmar Contraseña" />
-                        <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" required />
+                        <x-password-input id="password_confirmation" name="password_confirmation" class="mt-1 block w-full" required />
                     </div>
 
                     <div class="flex items-center gap-4">

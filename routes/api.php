@@ -16,7 +16,7 @@ Route::middleware('device.auth')->group(function () {
 Route::prefix('mobile')->group(function () {
 
     // Pública: aquí es donde se genera el token
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
     // Protegidas: requieren token Bearer válido en el header Authorization
     Route::middleware('auth:sanctum')->group(function () {

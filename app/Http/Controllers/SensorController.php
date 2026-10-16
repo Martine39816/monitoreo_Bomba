@@ -67,15 +67,19 @@ class SensorController extends Controller
         return redirect()->route('sensores.index')->with('status', 'Sensor registrado correctamente.');
     }
 
-    public function show(Sensor $sensor): View
+    public function show(Request $request, Sensor $sensor): View
     {
+        $this->verificarCentro($request, $sensor);
+
         $sensor->load('bomba', 'dispositivoIot', 'lecturas');
 
         return view('sensores.show', compact('sensor'));
     }
 
-    public function edit(Sensor $sensor): View
+    public function edit(Request $request, Sensor $sensor): View
     {
+        $this->verificarCentro($request, $sensor);
+
         return view('sensores.edit', [
             'sensor' => $sensor,
             'bombas' => Bomba::orderBy('nombre')->get(),
@@ -87,6 +91,8 @@ class SensorController extends Controller
 
     public function update(Request $request, Sensor $sensor): RedirectResponse
     {
+        $this->verificarCentro($request, $sensor);
+
         $validated = $this->validarDatos($request, $sensor->id);
 
         $sensor->update($validated);
@@ -94,11 +100,28 @@ class SensorController extends Controller
         return redirect()->route('sensores.index')->with('status', 'Sensor actualizado correctamente.');
     }
 
-    public function destroy(Sensor $sensor): RedirectResponse
+    public function destroy(Request $request, Sensor $sensor): RedirectResponse
     {
+        $this->verificarCentro($request, $sensor);
+
         $sensor->delete();
 
         return redirect()->route('sensores.index')->with('status', 'Sensor eliminado.');
+    }
+
+    /**
+     * Verifica que el usuario (si no es administrador) pertenezca al mismo
+     * centro de salud que la bomba asociada al sensor.
+     */
+    private function verificarCentro(Request $request, Sensor $sensor): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->esAdministrador()) {
+            return;
+        }
+
+        abort_if($sensor->bomba?->centros_salud_id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a este sensor.');
     }
 
     private function validarDatos(Request $request, ?int $ignorarId = null): array

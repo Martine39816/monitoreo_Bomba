@@ -39,8 +39,12 @@ class SecurityHeaders
     private function construirCsp(): string
     {
         if (app()->environment('production')) {
+            // Alpine.js (usado para el menu desplegable, los modales y el boton
+            // de mostrar/ocultar contraseña) evalua sus expresiones x-data con
+            // `new Function`, por lo que requiere 'unsafe-eval' en script-src.
+            // Sin esto, toda la interactividad queda bloqueada en produccion.
             return "default-src 'self'; ".
-                "script-src 'self'; ".
+                "script-src 'self' 'unsafe-eval'; ".
                     "style-src 'self' 'unsafe-inline' https://fonts.bunny.net; ".
                 "img-src 'self' data:; ".
                 "font-src 'self' https://fonts.bunny.net; ".
