@@ -15,6 +15,12 @@
                     (por ejemplo, si un Director nota algo anómalo durante una visita).
                 </p>
 
+                @if ($bombas->isEmpty())
+                    <div class="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-md text-sm">
+                        Tu centro todavía no tiene bombas registradas, por lo que todavía no es posible
+                        reportar un problema. Solicita al administrador que registre una bomba para tu centro.
+                    </div>
+                @else
                 <form method="POST" action="{{ route('alertas.store') }}" class="space-y-4">
                     @csrf
 
@@ -64,10 +70,16 @@
                     </div>
 
                     <div class="flex items-center gap-4">
-                        <x-primary-button>Reportar</x-primary-button>
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 border border-transparent rounded-md font-semibold text-sm text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                        >
+                            Registrar alerta
+                        </button>
                         <a href="{{ route('alertas.index') }}" class="text-sm text-gray-600">Cancelar</a>
                     </div>
                 </form>
+                @endif
 
             </div>
         </div>

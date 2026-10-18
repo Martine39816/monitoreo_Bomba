@@ -13,9 +13,18 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $users = User::with('centroSalud')->orderBy('id', 'desc')->get();
+        $usuario = $request->user();
+
+        $users = User::with('centroSalud')
+            // El Director (no administrador) solo ve los técnicos de su centro.
+            ->when(! $usuario->esAdministrador(), function ($q) use ($usuario) {
+                $q->where('rol', User::ROL_TECNICO)
+                    ->where('centros_salud_id', $usuario->centros_salud_id);
+            })
+            ->orderBy('id', 'desc')
+            ->paginate(15);
 
         return view('users.index', compact('users'));
     }
@@ -57,8 +66,10 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('status', 'Usuario creado correctamente.');
     }
 
-    public function show(User $user): View
+    public function show(Request $request, User $user): View
     {
+        $this->verificarAcceso($request, $user);
+
         $user->load('centroSalud');
 
         return view('users.show', compact('user'));
@@ -125,5 +136,24 @@ class UserController extends Controller
         $user->delete();
 
         return redirect()->route('users.index')->with('status', 'Usuario eliminado.');
+    }
+
+    /**
+     * El Director solo puede ver el detalle de los técnicos de su centro.
+     * El Administrador no tiene restricción.
+     */
+    private function verificarAcceso(Request $request, User $user): void
+    {
+        $usuario = $request->user();
+
+        if ($usuario->esAdministrador()) {
+            return;
+        }
+
+        abort_if(
+            $user->rol !== User::ROL_TECNICO || $user->centros_salud_id !== $usuario->centros_salud_id,
+            403,
+            'No tienes permiso para ver este usuario.'
+        );
     }
 }

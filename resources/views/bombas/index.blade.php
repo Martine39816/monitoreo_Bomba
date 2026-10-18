@@ -23,6 +23,14 @@
         </div>
     </x-slot>
 
+    @php
+        // El Director solo consulta: no ve botones de crear/editar/eliminar.
+        $puedeGestionarBombas = auth()->user()->tieneRol(
+            \App\Models\User::ROL_ADMINISTRADOR,
+            \App\Models\User::ROL_TECNICO
+        );
+    @endphp
+
 
     {{-- CONTENIDO PRINCIPAL --}}
     <div class="py-8 bg-gray-50 min-h-screen w-full">
@@ -103,7 +111,8 @@
                         </div>
 
 
-                        {{-- BOTÓN NUEVA BOMBA --}}
+                        {{-- BOTÓN NUEVA BOMBA (solo Administrador/Técnico) --}}
+                        @if ($puedeGestionarBombas)
                         <a href="{{ route('bombas.create') }}"
                            class="inline-flex items-center gap-2
                                   bg-blue-600 hover:bg-blue-700
@@ -128,6 +137,7 @@
                             Nueva Bomba
 
                         </a>
+                        @endif
 
                     </div>
 
@@ -741,6 +751,8 @@
                                         </a>
 
 
+                                        @if ($puedeGestionarBombas)
+
                                         {{-- EDITAR --}}
                                         <a href="{{ route('bombas.edit', $bomba->id) }}"
                                            title="Editar bomba"
@@ -807,6 +819,8 @@
 
                                         </form>
 
+                                        @endif
+
                                     </div>
 
                                 </td>
@@ -857,6 +871,10 @@
                         </tbody>
 
                     </table>
+
+                    <div class="mt-4">
+                        {{ $bombas->links() }}
+                    </div>
 
                 </div>
 

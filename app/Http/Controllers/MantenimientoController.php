@@ -23,18 +23,19 @@ class MantenimientoController extends Controller
                 });
             })
             ->orderBy('fecha', 'desc')
-            ->get();
+            ->paginate(15);
 
         return view('mantenimientos.index', compact('mantenimientos'));
     }
 
     public function create(Request $request): View
     {
-        $bombas = Bomba::orderBy('nombre')->get();
+        $bombas = $this->bombasDisponibles($request);
 
         // Si se llega desde una alerta ("Generar mantenimiento"), se preselecciona
         $alertaId = $request->query('alerta_id');
-        $alertasAbiertas = Alerta::whereDoesntHave('mantenimientos')
+        $alertasAbiertas = $this->alertasDisponibles($request)
+            ->whereDoesntHave('mantenimientos')
             ->orderBy('fecha_hora', 'desc')
             ->get();
 
@@ -69,11 +70,12 @@ class MantenimientoController extends Controller
     {
         $this->verificarCentro($request, $mantenimiento);
 
-        $bombas = Bomba::orderBy('nombre')->get();
-        $alertasAbiertas = Alerta::where(function ($q) use ($mantenimiento) {
-            $q->whereDoesntHave('mantenimientos')
-                ->orWhere('id', $mantenimiento->alertas_id);
-        })->orderBy('fecha_hora', 'desc')->get();
+        $bombas = $this->bombasDisponibles($request);
+        $alertasAbiertas = $this->alertasDisponibles($request)
+            ->where(function ($q) use ($mantenimiento) {
+                $q->whereDoesntHave('mantenimientos')
+                    ->orWhere('id', $mantenimiento->alertas_id);
+            })->orderBy('fecha_hora', 'desc')->get();
 
         return view('mantenimientos.edit', [
             'mantenimiento' => $mantenimiento,
@@ -118,16 +120,58 @@ class MantenimientoController extends Controller
         abort_if($mantenimiento->bomba?->centros_salud_id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a este mantenimiento.');
     }
 
+    /**
+     * Bombas que el usuario puede seleccionar: todas para administrador,
+     * solo las de su propio centro para el resto de roles.
+     */
+    private function bombasDisponibles(Request $request)
+    {
+        return Bomba::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('centros_salud_id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
+     * Alertas visibles para el usuario, acotadas a su centro (excepto administrador).
+     */
+    private function alertasDisponibles(Request $request)
+    {
+        return Alerta::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->whereHas('bomba', function ($qb) use ($request) {
+                    $qb->where('centros_salud_id', $request->user()->centros_salud_id);
+                });
+            });
+    }
+
     private function validarDatos(Request $request): array
     {
+        $usuario = $request->user();
+
+        $reglaBomba = Rule::exists('bombas', 'id');
+        $reglaAlerta = Rule::exists('alertas', 'id');
+
+        // Un no-administrador solo puede registrar mantenimientos sobre
+        // bombas (y alertas) de su propio centro de salud.
+        if (! $usuario->esAdministrador()) {
+            $reglaBomba->where('centros_salud_id', $usuario->centros_salud_id);
+            $reglaAlerta->whereIn(
+                'bombas_id',
+                Bomba::where('centros_salud_id', $usuario->centros_salud_id)->pluck('id')
+            );
+        }
+
         return $request->validate([
             'tipo' => ['required', Rule::in(self::TIPOS)],
             'fecha' => ['required', 'date'],
             'descripcion' => ['nullable', 'string'],
             'observaciones' => ['nullable', 'string'],
             'proximo_mantenimiento' => ['nullable', 'date', 'after_or_equal:fecha'],
-            'bombas_id' => ['required', 'exists:bombas,id'],
-            'alertas_id' => ['nullable', 'exists:alertas,id'],
+            'bombas_id' => ['required', $reglaBomba],
+            'alertas_id' => ['nullable', $reglaAlerta],
         ]);
     }
 }

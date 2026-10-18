@@ -38,14 +38,14 @@ class BombaController extends Controller
             $query->where('centros_salud_id', $usuario->centros_salud_id);
         }
 
-        $bombas = $query->get();
+        $bombas = $query->paginate(15);
 
         return view('bombas.index', compact('bombas'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $centros = CentroSalud::orderBy('nombre')->get();
+        $centros = $this->centrosDisponibles($request);
 
         return view('bombas.create', ['centros' => $centros, 'estados' => self::ESTADOS]);
     }
@@ -53,6 +53,11 @@ class BombaController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validarDatos($request);
+
+        // Un no-administrador solo puede registrar bombas en su propio centro.
+        if (! $request->user()->esAdministrador()) {
+            $validated['centros_salud_id'] = $request->user()->centros_salud_id;
+        }
 
         Bomba::create($validated);
 
@@ -115,7 +120,7 @@ class BombaController extends Controller
     {
         $this->authorize('update', $bomba);
 
-        $centros = CentroSalud::orderBy('nombre')->get();
+        $centros = $this->centrosDisponibles($request);
 
         return view('bombas.edit', ['bomba' => $bomba, 'centros' => $centros, 'estados' => self::ESTADOS]);
     }
@@ -125,6 +130,11 @@ class BombaController extends Controller
         $this->authorize('update', $bomba);
 
         $validated = $this->validarDatos($request, $bomba->id);
+
+        // Un no-administrador no puede mover la bomba a otro centro.
+        if (! $request->user()->esAdministrador()) {
+            $validated['centros_salud_id'] = $request->user()->centros_salud_id;
+        }
 
         $bomba->update($validated);
 
@@ -158,6 +168,20 @@ class BombaController extends Controller
 
         return redirect()->route('bombas.show', $bomba->id)
             ->with('status', 'Bomba apagada correctamente.');
+    }
+
+    /**
+     * Centros que el usuario puede seleccionar: todos para administrador,
+     * solo el propio para el resto de roles.
+     */
+    private function centrosDisponibles(Request $request)
+    {
+        return CentroSalud::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
     }
 
     private function validarDatos(Request $request, ?int $ignorarId = null): array

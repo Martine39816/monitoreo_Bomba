@@ -3,16 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Alerta;
 use App\Models\Bomba;
 use App\Models\Lectura;
 use App\Models\Sensor;
+use App\Services\AlertaService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DispositivoApiController extends Controller
 {
+    public function __construct(private readonly AlertaService $alertaService)
+    {
+    }
+
     /**
      * POST /api/lecturas
      * El ESP32 envia una lectura individual de un sensor.
@@ -55,13 +60,18 @@ class DispositivoApiController extends Controller
             ], 200);
         }
 
-        $lectura = Lectura::create([
-            'sensores_id' => $validated['sensores_id'],
-            'valor_medido' => $validated['valor_medido'],
-            'fecha_hora' => now(),
-        ]);
+        // Lectura y alerta se guardan en una misma transaccion para evitar
+        // lecturas huerfanas si falla la generacion de la alerta. La evaluacion
+        // de umbrales se delega en AlertaService (punto unico de verdad).
+        $alertaGenerada = DB::transaction(function () use ($validated, $sensor) {
+            $lectura = Lectura::create([
+                'sensores_id' => $validated['sensores_id'],
+                'valor_medido' => $validated['valor_medido'],
+                'fecha_hora' => now(),
+            ]);
 
-        $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
+            return $this->alertaService->evaluarYGenerarAlerta($lectura, $sensor, AlertaService::SUFIJO_IOT);
+        });
 
         return response()->json([
             'guardado' => true,
@@ -143,72 +153,5 @@ class DispositivoApiController extends Controller
         $bomba->update(['funcionando' => $sugerido]); // el Observer registra el evento
 
         return true;
-    }
-
-    /**
-     * Misma logica automatica de alertas que ya usa LecturaController (web).
-     */
-    private function evaluarYGenerarAlerta(Lectura $lectura, Sensor $sensor): bool
-    {
-        if ($sensor->valor_minimo === null || $sensor->valor_maximo === null) {
-            return false;
-        }
-
-        $valor = (float) $lectura->valor_medido;
-        $fueraDeRango = null;
-
-        if ($valor > $sensor->valor_maximo) {
-            $fueraDeRango = 'alto';
-        } elseif ($valor < $sensor->valor_minimo) {
-            $fueraDeRango = 'bajo';
-        }
-
-        if (! $fueraDeRango) {
-            return false;
-        }
-
-        $tipoAlerta = $this->mapearTipoAlerta($sensor->tipo, $fueraDeRango);
-
-        $yaExistePendiente = Alerta::where('sensores_id', $sensor->id)
-            ->where('tipo', $tipoAlerta)
-            ->where('atendida', false)
-            ->exists();
-
-        if ($yaExistePendiente) {
-            return false;
-        }
-
-        Alerta::create([
-            'tipo' => $tipoAlerta,
-            'descripcion' => sprintf(
-                'Valor %s detectado automaticamente (IoT): %s %s (rango normal: %s a %s %s)',
-                $fueraDeRango === 'alto' ? 'alto' : 'bajo',
-                $valor,
-                $sensor->unidad_medida,
-                $sensor->valor_minimo,
-                $sensor->valor_maximo,
-                $sensor->unidad_medida
-            ),
-            'valor_detectado' => $valor,
-            'valor_permitido' => $fueraDeRango === 'alto' ? $sensor->valor_maximo : $sensor->valor_minimo,
-            'fecha_hora' => $lectura->fecha_hora,
-            'atendida' => false,
-            'sensores_id' => $sensor->id,
-            'bombas_id' => $sensor->bombas_id,
-        ]);
-
-        return true;
-    }
-
-    private function mapearTipoAlerta(string $tipoSensor, string $direccion): string
-    {
-        return match (true) {
-            $tipoSensor === 'nivel' && $direccion === 'alto' => 'nivel_alto',
-            $tipoSensor === 'nivel' && $direccion === 'bajo' => 'nivel_bajo',
-            $tipoSensor === 'temperatura' && $direccion === 'alto' => 'temperatura_alta',
-            $tipoSensor === 'corriente' && $direccion === 'alto' => 'sobrecorriente',
-            $tipoSensor === 'vibracion' && $direccion === 'alto' => 'vibracion_alta',
-            default => 'falla_electrica',
-        };
     }
 }

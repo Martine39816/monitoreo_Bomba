@@ -39,8 +39,12 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        // 'estado' => true impide que una cuenta desactivada pueda iniciar
+        // sesion: el proveedor Eloquent lo agrega como filtro en la consulta,
+        // por lo que si el usuario esta inactivo, el intento simplemente falla.
         $credentials = [
             'correo' => $this->input('email'),
+            'estado' => true,
             'password' => $this->input('password'),
         ];
 

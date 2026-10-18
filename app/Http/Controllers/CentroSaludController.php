@@ -18,7 +18,7 @@ class CentroSaludController extends Controller
                 $q->where('id', $request->user()->centros_salud_id);
             })
             ->orderBy('nombre')
-            ->get();
+            ->paginate(15);
 
         return view('centros.index', compact('centros'));
     }

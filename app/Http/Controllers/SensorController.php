@@ -48,11 +48,11 @@ class SensorController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('sensores.create', [
-            'bombas' => Bomba::orderBy('nombre')->get(),
-            'dispositivos' => DispositivoIot::orderBy('nombre')->get(),
+            'bombas' => $this->bombasDisponibles($request),
+            'dispositivos' => $this->dispositivosDisponibles($request),
             'tipos' => self::TIPOS,
             'estados' => self::ESTADOS,
         ]);
@@ -82,8 +82,8 @@ class SensorController extends Controller
 
         return view('sensores.edit', [
             'sensor' => $sensor,
-            'bombas' => Bomba::orderBy('nombre')->get(),
-            'dispositivos' => DispositivoIot::orderBy('nombre')->get(),
+            'bombas' => $this->bombasDisponibles($request),
+            'dispositivos' => $this->dispositivosDisponibles($request),
             'tipos' => self::TIPOS,
             'estados' => self::ESTADOS,
         ]);
@@ -124,8 +124,47 @@ class SensorController extends Controller
         abort_if($sensor->bomba?->centros_salud_id !== $usuario->centros_salud_id, 403, 'No tienes permiso para acceder a este sensor.');
     }
 
+    /**
+     * Bombas que el usuario puede seleccionar: todas para administrador,
+     * solo las de su propio centro para el resto de roles.
+     */
+    private function bombasDisponibles(Request $request)
+    {
+        return Bomba::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('centros_salud_id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
+    /**
+     * Dispositivos que el usuario puede seleccionar, con el mismo criterio.
+     */
+    private function dispositivosDisponibles(Request $request)
+    {
+        return DispositivoIot::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('centros_salud_id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
+        $usuario = $request->user();
+
+        $reglaDispositivo = Rule::exists('dispositivos_iot', 'id');
+        $reglaBomba = Rule::exists('bombas', 'id');
+
+        // Un no-administrador solo puede asociar sensores a bombas y
+        // dispositivos de su propio centro de salud.
+        if (! $usuario->esAdministrador()) {
+            $reglaDispositivo->where('centros_salud_id', $usuario->centros_salud_id);
+            $reglaBomba->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
         return $request->validate([
             'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('sensores', 'codigo')->ignore($ignorarId)],
             'nombre' => ['required', 'string', 'max:120', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
@@ -139,8 +178,8 @@ class SensorController extends Controller
             'estado' => ['required', Rule::in(self::ESTADOS)],
             'fecha_instalacion' => ['nullable', 'date'],
             'ubicacion' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
-            'dispositivos_iot_id' => ['required', 'exists:dispositivos_iot,id'],
-            'bombas_id' => ['required', 'exists:bombas,id'],
+            'dispositivos_iot_id' => ['required', $reglaDispositivo],
+            'bombas_id' => ['required', $reglaBomba],
         ], [
             'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
             'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',

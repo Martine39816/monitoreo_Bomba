@@ -158,6 +158,12 @@
                         💧 <span>Lecturas</span>
                     </a>
 
+                    {{-- Reportar problema manual: disponible para todos los roles
+                         (el Director reporta aunque no controle la bomba). --}}
+                    <a href="{{ route('alertas.create') }}" class="flex items-center gap-2 border border-gray-100 rounded-lg p-3 text-sm hover:bg-gray-50 transition-colors">
+                        🚨 <span>Reportar Problema</span>
+                    </a>
+
                 </div>
             </div>
 

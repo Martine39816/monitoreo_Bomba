@@ -1,8 +1,10 @@
 <x-app-layout>
 
+    @php $esAdmin = auth()->user()->esAdministrador(); @endphp
+
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Gestión de Usuarios
+            {{ $esAdmin ? 'Gestión de Usuarios' : 'Técnicos de mi Centro' }}
         </h2>
     </x-slot>
 
@@ -18,12 +20,16 @@
             <div class="bg-white shadow rounded-lg p-6">
 
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold">Lista de Usuarios</h3>
+                    <h3 class="text-xl font-bold">
+                        {{ $esAdmin ? 'Lista de Usuarios' : 'Técnicos asignados a mi centro' }}
+                    </h3>
 
-                    <a href="{{ route('users.create') }}"
-                       class="bg-blue-600 text-white px-4 py-2 rounded">
-                        Nuevo Usuario
-                    </a>
+                    @if ($esAdmin)
+                        <a href="{{ route('users.create') }}"
+                           class="bg-blue-600 text-white px-4 py-2 rounded">
+                            Nuevo Usuario
+                        </a>
+                    @endif
                 </div>
 
                 <table class="min-w-full border border-gray-300">
@@ -52,24 +58,30 @@
                             </td>
                             <td class="border p-2 space-x-2">
                                 <a href="{{ route('users.show', $user->id) }}" class="text-gray-600">Ver</a>
-                                <a href="{{ route('users.edit', $user->id) }}" class="text-blue-600">Editar</a>
-                                <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="inline"
-                                      onsubmit="return confirm('¿Eliminar este usuario?');">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600">Eliminar</button>
-                                </form>
+                                @if ($esAdmin)
+                                    <a href="{{ route('users.edit', $user->id) }}" class="text-blue-600">Editar</a>
+                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" class="inline"
+                                          onsubmit="return confirm('¿Eliminar este usuario?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600">Eliminar</button>
+                                    </form>
+                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="7" class="text-center p-4">
-                                No existen usuarios registrados.
+                                {{ $esAdmin ? 'No existen usuarios registrados.' : 'No hay técnicos asignados a tu centro.' }}
                             </td>
                         </tr>
                     @endforelse
                     </tbody>
                 </table>
+
+                <div class="mt-4">
+                    {{ $users->links() }}
+                </div>
 
             </div>
         </div>

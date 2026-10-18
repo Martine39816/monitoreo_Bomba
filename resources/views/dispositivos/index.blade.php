@@ -79,6 +79,10 @@
                     </tbody>
                 </table>
 
+                <div class="mt-4">
+                    {{ $dispositivos->links() }}
+                </div>
+
             </div>
         </div>
     </div>

@@ -34,10 +34,19 @@
                     @endif
                 </div>
 
+                <div>
+                    <span class="font-semibold">Tiempo de atención (umbral 24 h):</span>
+                    <span class="{{ str_ends_with($estadoTiempoAtencion, '_dentro')
+                        ? 'text-green-600 font-semibold'
+                        : (str_ends_with($estadoTiempoAtencion, '_fuera') ? 'text-red-600 font-semibold' : 'text-gray-500 font-semibold') }}">
+                        {{ $etiquetaTiempoAtencion }}
+                    </span>
+                </div>
+
                 @if ($alerta->atendida)
                     <div><span class="font-semibold">Atendida por:</span> {{ $alerta->usuarioAtencion->name ?? '—' }}</div>
                     <div><span class="font-semibold">Fecha de atención:</span> {{ $alerta->fecha_atencion?->format('d/m/Y H:i:s') }}</div>
-                @else
+                @elseif (!auth()->user()->esDirector())
                     <form action="{{ route('alertas.atender', $alerta->id) }}" method="POST" class="mt-4"
                           onsubmit="return confirm('¿Marcar esta alerta como solucionada?');">
                         @csrf

@@ -75,6 +75,10 @@
                     </tbody>
                 </table>
 
+                <div class="mt-4">
+                    {{ $centros->links() }}
+                </div>
+
             </div>
         </div>
     </div>

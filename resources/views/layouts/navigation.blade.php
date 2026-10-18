@@ -7,6 +7,15 @@
     class="relative lg:w-64 lg:flex-shrink-0"
 >
 
+    @php
+        $usuarioNav = auth()->user();
+        // Menu por rol: no se muestran enlaces que el rol no pueda abrir (evita 403).
+        $puedeOperar = $usuarioNav->tieneRol(\App\Models\User::ROL_ADMINISTRADOR, \App\Models\User::ROL_TECNICO);
+        $esAdminNav = $usuarioNav->esAdministrador();
+        // El Director tambien consulta el listado de bombas, pero solo las de su centro (solo lectura).
+        $puedeVerBombas = $puedeOperar || $usuarioNav->esDirector();
+    @endphp
+
     {{-- ==========================================
          BARRA SUPERIOR PARA CELULAR
          ========================================== --}}
@@ -267,6 +276,8 @@
                     class="mt-1 space-y-1"
                 >
 
+                    @if ($puedeVerBombas)
+
                     {{-- BOMBAS --}}
                     <a
                         href="{{ route('bombas.index') }}"
@@ -298,6 +309,10 @@
                         </span>
 
                     </a>
+
+                    @endif
+
+                    @if ($puedeOperar)
 
 
                     {{-- SENSORES --}}
@@ -412,6 +427,8 @@
 
                     </a>
 
+                    @endif
+
                 </div>
 
             </div>
@@ -486,8 +503,89 @@
 
 
             {{-- ==========================================
+                 REPORTES
+                 ========================================== --}}
+            <div class="mt-5">
+
+                <a
+                    href="{{ route('reportes.index') }}"
+                    @click="sidebarOpen = false"
+                    class="
+                        flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                        {{ request()->routeIs('reportes.*')
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}
+                    "
+                >
+
+                    <svg
+                        class="w-5 h-5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M4 20V10M10 20V4M16 20v-8M22 20H2"
+                        />
+                    </svg>
+
+                    <span>
+                        Reportes
+                    </span>
+
+                </a>
+
+            </div>
+
+
+            {{-- ==========================================
+                 TÉCNICOS DEL CENTRO (solo Director)
+                 ========================================== --}}
+            @if ($usuarioNav->esDirector())
+            <div class="mt-5">
+
+                <a
+                    href="{{ route('users.index') }}"
+                    @click="sidebarOpen = false"
+                    class="
+                        flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
+                        {{ request()->routeIs('users.*')
+                            ? 'bg-blue-600 text-white shadow-lg'
+                            : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}
+                    "
+                >
+
+                    <svg
+                        class="w-5 h-5 flex-shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
+                        />
+                    </svg>
+
+                    <span>
+                        Técnicos de mi Centro
+                    </span>
+
+                </a>
+
+            </div>
+            @endif
+
+
+            {{-- ==========================================
                  ADMINISTRACIÓN
                  ========================================== --}}
+            @if ($puedeOperar)
             <div class="mt-6">
 
                 <button
@@ -590,6 +688,8 @@
                     </a>
 
 
+                    @if ($esAdminNav)
+
                     {{-- USUARIOS --}}
                     <a
                         href="{{ route('users.index') }}"
@@ -622,9 +722,12 @@
 
                     </a>
 
+                    @endif
+
                 </div>
 
             </div>
+            @endif
 
         </div>
 

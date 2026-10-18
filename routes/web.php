@@ -19,14 +19,27 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Gestion de usuarios: solo Administrador
+// Gestion de usuarios (crear/editar/eliminar): solo Administrador
 Route::middleware(['auth', 'role:administrador'])->group(function () {
-    Route::resource('users', UserController::class);
+    Route::resource('users', UserController::class)->except(['index', 'show']);
 });
 
-// Gestión de bombas: Administrador y Técnico
+// Consulta de usuarios: Administrador (todos) y Director (solo técnicos de su centro)
+Route::middleware(['auth', 'role:administrador,director'])->group(function () {
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+});
+
+// Gestión de bombas (crear/editar/eliminar): Administrador y Técnico.
+// Se registra primero para que /bombas/crear no caiga en /bombas/{bomba}.
 Route::middleware(['auth', 'role:administrador,tecnico'])->group(function () {
-    Route::resource('bombas', BombaController::class);
+    Route::resource('bombas', BombaController::class)->except(['index', 'show']);
+});
+
+// Consulta de bombas: Administrador y Técnico (todas) y Director (solo las de su centro).
+// El filtrado por centro se aplica en BombaController::index y la Policy de show.
+Route::middleware(['auth', 'role:administrador,tecnico,director'])->group(function () {
+    Route::resource('bombas', BombaController::class)->only(['index', 'show']);
 });
 
 // Gestión de centros de salud: Administrador y Técnico
@@ -77,11 +90,39 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/alertas', [\App\Http\Controllers\AlertaController::class, 'store'])->name('alertas.store');
 });
 
-// Consulta y atención de alertas: todos los roles autenticados
+// Consulta de alertas: todos los roles autenticados.
+// El Director solo consulta: no puede atender ni cambiar el estado de una alerta
+// (la restriccion se aplica en el servidor mediante el middleware de rol).
 Route::middleware(['auth'])->group(function () {
     Route::get('/alertas', [\App\Http\Controllers\AlertaController::class, 'index'])->name('alertas.index');
     Route::get('/alertas/{alerta}', [\App\Http\Controllers\AlertaController::class, 'show'])->name('alertas.show');
-    Route::patch('/alertas/{alerta}/atender', [\App\Http\Controllers\AlertaController::class, 'atender'])->name('alertas.atender');
+    Route::patch('/alertas/{alerta}/atender', [\App\Http\Controllers\AlertaController::class, 'atender'])
+        ->middleware('role:administrador,tecnico')
+        ->name('alertas.atender');
+});
+
+// Reportes: los tres roles. El administrador consulta todos los centros;
+// el técnico y el director quedan limitados a su propio centro en el
+// servidor (ReporteService::resolverCentro), sin confiar en el navegador.
+// El comparativo entre centros se registrará en su fase, solo para administrador.
+Route::middleware(['auth', 'role:administrador,tecnico,director'])->group(function () {
+    Route::get('/reportes', [App\Http\Controllers\ReporteController::class, 'index'])->name('reportes.index');
+
+    // El informe general se registra antes de la ruta generica de exportacion
+    // porque su descarga tambien tiene la forma /reportes/{algo}/exportar/{formato}.
+    Route::get('/reportes/informe', [App\Http\Controllers\ReporteController::class, 'informe'])->name('reportes.informe');
+    Route::get('/reportes/informe/exportar/{formato}', [App\Http\Controllers\ReporteController::class, 'exportarInforme'])
+        ->name('reportes.informe.exportar');
+
+    Route::get('/reportes/bombas', [App\Http\Controllers\ReporteController::class, 'bombas'])->name('reportes.bombas');
+    Route::get('/reportes/lecturas', [App\Http\Controllers\ReporteController::class, 'lecturas'])->name('reportes.lecturas');
+    Route::get('/reportes/alertas', [App\Http\Controllers\ReporteController::class, 'alertas'])->name('reportes.alertas');
+    Route::get('/reportes/mantenimientos', [App\Http\Controllers\ReporteController::class, 'mantenimientos'])->name('reportes.mantenimientos');
+
+    // Descarga de un reporte en PDF o Excel. Se registra despues de las rutas
+    // anteriores porque su patron tiene mas segmentos y no debe interceptarlas.
+    Route::get('/reportes/{reporte}/exportar/{formato}', [App\Http\Controllers\ReporteController::class, 'exportar'])
+        ->name('reportes.exportar');
 });
 
 // Control remoto de bombas: Administrador y Técnico

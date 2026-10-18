@@ -17,7 +17,9 @@ class RoleMiddleware
     {
         $usuario = $request->user();
 
-        if (! $usuario || ! in_array($usuario->rol, $roles, true)) {
+        // Se rechaza tambien a las cuentas desactivadas (estado = false), por si
+        // la cuenta fue desactivada mientras la sesion ya estaba abierta.
+        if (! $usuario || ! $usuario->estado || ! in_array($usuario->rol, $roles, true)) {
             abort(403, 'No tienes permisos para acceder a esta seccion.');
         }
 

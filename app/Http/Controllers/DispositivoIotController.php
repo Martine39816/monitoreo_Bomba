@@ -21,14 +21,14 @@ class DispositivoIotController extends Controller
                 $q->where('centros_salud_id', $request->user()->centros_salud_id);
             })
             ->orderBy('id', 'desc')
-            ->get();
+            ->paginate(15);
 
         return view('dispositivos.index', compact('dispositivos'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        $centros = CentroSalud::orderBy('nombre')->get();
+        $centros = $this->centrosDisponibles($request);
 
         return view('dispositivos.create', ['centros' => $centros, 'estados' => self::ESTADOS]);
     }
@@ -55,7 +55,7 @@ class DispositivoIotController extends Controller
     {
         $this->verificarCentro($request, $dispositivo);
 
-        $centros = CentroSalud::orderBy('nombre')->get();
+        $centros = $this->centrosDisponibles($request);
 
         return view('dispositivos.edit', ['dispositivo' => $dispositivo, 'centros' => $centros, 'estados' => self::ESTADOS]);
     }
@@ -113,8 +113,29 @@ class DispositivoIotController extends Controller
             ->with('status', 'API key generada. Cópiala ahora, no se volverá a mostrar.');
     }
 
+    /**
+     * Centros que el usuario puede seleccionar: todos para administrador,
+     * solo el propio para el resto de roles.
+     */
+    private function centrosDisponibles(Request $request)
+    {
+        return CentroSalud::query()
+            ->when(! $request->user()->esAdministrador(), function ($q) use ($request) {
+                $q->where('id', $request->user()->centros_salud_id);
+            })
+            ->orderBy('nombre')
+            ->get();
+    }
+
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
+        $reglaCentro = Rule::exists('centros_salud', 'id');
+
+        // Un no-administrador solo puede registrar dispositivos en su propio centro.
+        if (! $request->user()->esAdministrador()) {
+            $reglaCentro->where('id', $request->user()->centros_salud_id);
+        }
+
         return $request->validate([
             'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('dispositivos_iot', 'codigo')->ignore($ignorarId)],
             'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
@@ -125,7 +146,7 @@ class DispositivoIotController extends Controller
             'mac_address' => ['nullable', 'mac_address'],
             'firmware' => ['nullable', 'string', 'max:50', 'regex:'.TextPatterns::CODIGO],
             'estado' => ['required', Rule::in(self::ESTADOS)],
-            'centros_salud_id' => ['required', 'exists:centros_salud,id'],
+            'centros_salud_id' => ['required', $reglaCentro],
         ], [
             'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
             'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',

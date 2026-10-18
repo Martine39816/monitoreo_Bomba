@@ -75,6 +75,10 @@
                     </tbody>
                 </table>
 
+                <div class="mt-4">
+                    {{ $mantenimientos->links() }}
+                </div>
+
             </div>
         </div>
     </div>

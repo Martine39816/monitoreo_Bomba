@@ -45,6 +45,7 @@
                             <th class="border p-2">Descripción</th>
                             <th class="border p-2">Bomba</th>
                             <th class="border p-2">Estado</th>
+                            <th class="border p-2">Tiempo de atención</th>
                             <th class="border p-2">Atendida por</th>
                             <th class="border p-2">Acciones</th>
                         </tr>
@@ -64,10 +65,17 @@
                                     <span class="text-red-600 font-semibold">Pendiente</span>
                                 @endif
                             </td>
+                            <td class="border p-2">
+                                <span class="{{ str_ends_with($alerta->estado_tiempo_atencion, '_dentro')
+                                    ? 'text-green-600 font-semibold'
+                                    : (str_ends_with($alerta->estado_tiempo_atencion, '_fuera') ? 'text-red-600 font-semibold' : 'text-gray-500 font-semibold') }}">
+                                    {{ $alerta->etiqueta_tiempo_atencion }}
+                                </span>
+                            </td>
                             <td class="border p-2">{{ $alerta->usuarioAtencion->name ?? '—' }}</td>
                             <td class="border p-2 space-x-2">
                                 <a href="{{ route('alertas.show', $alerta->id) }}" class="text-gray-600">Ver</a>
-                                @if (!$alerta->atendida)
+                                @if (!$alerta->atendida && !auth()->user()->esDirector())
                                     <form action="{{ route('alertas.atender', $alerta->id) }}" method="POST" class="inline"
                                           onsubmit="return confirm('¿Marcar esta alerta como solucionada?');">
                                         @csrf
@@ -79,7 +87,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center p-4">
+                            <td colspan="8" class="text-center p-4">
                                 No existen alertas registradas.
                             </td>
                         </tr>

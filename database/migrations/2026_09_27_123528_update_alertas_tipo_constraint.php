@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('ALTER TABLE alertas DROP CHECK chk_alertas_tipo');
+        DB::statement('ALTER TABLE alertas DROP CONSTRAINT chk_alertas_tipo');
 
         DB::statement("ALTER TABLE alertas ADD CONSTRAINT chk_alertas_tipo CHECK (tipo IN (
             'nivel_bajo','nivel_alto','bomba_apagada','falla_electrica',
@@ -18,7 +18,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE alertas DROP CHECK chk_alertas_tipo');
+        DB::statement('ALTER TABLE alertas DROP CONSTRAINT chk_alertas_tipo');
 
         DB::statement("ALTER TABLE alertas ADD CONSTRAINT chk_alertas_tipo CHECK (tipo IN (
             'nivel_bajo','nivel_alto','bomba_apagada','falla_electrica',
