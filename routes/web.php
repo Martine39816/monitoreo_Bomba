@@ -90,4 +90,5 @@ Route::middleware(['auth', 'role:administrador,tecnico', 'throttle:control-bomba
     Route::post('/bombas/{bomba}/apagar', [\App\Http\Controllers\BombaController::class, 'apagar'])->name('bombas.apagar');
 });
 
+require __DIR__.'/consumo.php';
 require __DIR__.'/auth.php';

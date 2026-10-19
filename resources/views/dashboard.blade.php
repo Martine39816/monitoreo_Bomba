@@ -158,6 +158,10 @@
                         💧 <span>Lecturas</span>
                     </a>
 
+                    <a href="{{ route('consumo.index') }}" class="flex items-center gap-2 border border-gray-100 rounded-lg p-3 text-sm hover:bg-gray-50 transition-colors">
+                        🚰 <span>Consumo</span>
+                    </a>
+
                 </div>
             </div>
 
