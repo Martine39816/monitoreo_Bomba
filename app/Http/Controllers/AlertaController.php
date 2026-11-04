@@ -15,6 +15,7 @@ class AlertaController extends Controller
     private const TIPOS = [
         'nivel_bajo', 'nivel_alto', 'bomba_apagada', 'falla_electrica',
         'sobrecorriente', 'temperatura_alta', 'vibracion_alta', 'sensor_desconectado',
+        'tiempo_excedido', 'ciclos_frecuentes', 'posible_rebalse',
     ];
 
     public function index(Request $request): View

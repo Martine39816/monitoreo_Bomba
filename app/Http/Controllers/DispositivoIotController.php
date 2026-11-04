@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CentroSalud;
 use App\Models\DispositivoIot;
+use App\Support\TextPatterns;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -87,16 +88,25 @@ class DispositivoIotController extends Controller
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([
-            'codigo' => ['required', 'string', 'max:30', Rule::unique('dispositivos_iot', 'codigo')->ignore($ignorarId)],
-            'nombre' => ['required', 'string', 'max:100'],
-            'modelo' => ['nullable', 'string', 'max:80'],
-            'tipo_dispositivo' => ['nullable', 'string', 'max:30'],
-            'puerto' => ['nullable', 'integer'],
-            'direccion_ip' => ['nullable', 'string', 'max:50'],
-            'mac_address' => ['nullable', 'string', 'max:50'],
-            'firmware' => ['nullable', 'string', 'max:50'],
+            'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('dispositivos_iot', 'codigo')->ignore($ignorarId)],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
+            'modelo' => ['nullable', 'string', 'max:80', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'tipo_dispositivo' => ['nullable', 'string', 'max:30', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
+            'puerto' => ['nullable', 'integer', 'between:1,65535'],
+            'direccion_ip' => ['nullable', 'ip'],
+            'mac_address' => ['nullable', 'mac_address'],
+            'firmware' => ['nullable', 'string', 'max:50', 'regex:'.TextPatterns::CODIGO],
             'estado' => ['required', Rule::in(self::ESTADOS)],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
+        ], [
+            'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',
+            'modelo.regex' => 'El modelo no puede tener espacios dobles ni caracteres especiales.',
+            'tipo_dispositivo.regex' => 'El tipo de dispositivo no puede tener espacios dobles ni caracteres especiales.',
+            'puerto.between' => 'El puerto debe ser un número válido entre 1 y 65535.',
+            'direccion_ip.ip' => 'Ingresá una dirección IP válida (ej. 192.168.1.10).',
+            'mac_address.mac_address' => 'Ingresá una dirección MAC válida (ej. 00:1B:44:11:3A:B7).',
+            'firmware.regex' => 'La versión de firmware solo puede contener letras, números, guiones y puntos.',
         ]);
     }
 }

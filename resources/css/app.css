@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ==========================================
+   MENÚ LATERAL - FONDO SÓLIDO
+   ========================================== */
+
+.sidebar-menu {
+    background-color: #0f172a !important;
+    opacity: 1 !important;
+}
+
+/* Evita transparencias en elementos internos */
+.sidebar-menu * {
+    opacity: 1;
+}

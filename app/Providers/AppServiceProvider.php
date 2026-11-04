@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Bomba;
+use App\Observers\BombaObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -33,5 +35,9 @@ class AppServiceProvider extends ServiceProvider
             'layouts.navigation',
             \App\View\Composers\AlertaComposer::class
         );
+
+        // Registra en eventos_bomba cada vez que una bomba se enciende/apaga,
+        // para poder calcular despues tiempo de funcionamiento y ciclos.
+        Bomba::observe(BombaObserver::class);
     }
 }

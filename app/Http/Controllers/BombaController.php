@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Bomba;
 use App\Models\CentroSalud;
+use App\Support\TextPatterns;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,9 +17,28 @@ class BombaController extends Controller
 
     private const ESTADOS = ['activo', 'inactivo', 'mantenimiento', 'fuera_servicio', 'desconectado'];
 
-    public function index(): View
+    /**
+     * Cuántas lecturas recientes se muestran por sensor en la ficha de la bomba.
+     */
+    private const LECTURAS_POR_SENSOR = 8;
+
+    /**
+     * Cuántas alertas se muestran en la ficha de la bomba.
+     */
+    private const ALERTAS_RECIENTES = 15;
+
+    public function index(Request $request): View
     {
-        $bombas = Bomba::with('centroSalud')->orderBy('id', 'desc')->get();
+        $usuario = $request->user();
+
+        $query = Bomba::with('centroSalud')->orderBy('id', 'desc');
+
+        // Solo el Administrador ve las bombas de todos los centros.
+        if (! $usuario->esAdministrador()) {
+            $query->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
+        $bombas = $query->get();
 
         return view('bombas.index', compact('bombas'));
     }
@@ -39,17 +59,62 @@ class BombaController extends Controller
         return redirect()->route('bombas.index')->with('status', 'Bomba registrada correctamente.');
     }
 
-    public function show(Bomba $bomba): View
+    public function show(Request $request, Bomba $bomba): View
     {
+        $this->authorize('view', $bomba);
+
         $bomba->load('centroSalud', 'sensores');
 
         $salud = \App\Models\VistaSaludBomba::where('bomba_id', $bomba->id)->first();
 
-        return view('bombas.show', compact('bomba', 'salud'));
+        // Últimas N lecturas de cada sensor de esta bomba (no el historial completo).
+        foreach ($bomba->sensores as $sensor) {
+            $sensor->setRelation(
+                'ultimasLecturas',
+                $sensor->lecturas()
+                    ->orderByDesc('fecha_hora')
+                    ->limit(self::LECTURAS_POR_SENSOR)
+                    ->get()
+            );
+        }
+
+        // Pendientes primero; dentro de cada grupo, las más recientes arriba.
+        $alertas = $bomba->alertas()
+            ->with('sensor:id,tipo,codigo')
+            ->orderBy('atendida')
+            ->orderByDesc('fecha_hora')
+            ->limit(self::ALERTAS_RECIENTES)
+            ->get();
+
+        // Datos para el selector Centro de Salud -> Bomba (respeta el rol).
+        $usuario = $request->user();
+        $visibles = Bomba::with('centroSalud:id,nombre')->orderBy('nombre');
+
+        if (! $usuario->esAdministrador()) {
+            $visibles->where('centros_salud_id', $usuario->centros_salud_id);
+        }
+
+        $selector = $visibles->get()->map(fn (Bomba $b) => [
+            'id' => $b->id,
+            'codigo' => $b->codigo,
+            'nombre' => $b->nombre,
+            'centro_id' => $b->centros_salud_id,
+            'centro' => $b->centroSalud?->nombre ?? 'Sin centro',
+        ])->values();
+
+        $centrosSelector = $selector
+            ->unique('centro_id')
+            ->map(fn ($b) => ['id' => $b['centro_id'], 'nombre' => $b['centro']])
+            ->sortBy('nombre')
+            ->values();
+
+        return view('bombas.show', compact('bomba', 'salud', 'alertas', 'selector', 'centrosSelector'));
     }
 
     public function edit(Bomba $bomba): View
     {
+        $this->authorize('update', $bomba);
+
         $centros = CentroSalud::orderBy('nombre')->get();
 
         return view('bombas.edit', ['bomba' => $bomba, 'centros' => $centros, 'estados' => self::ESTADOS]);
@@ -57,6 +122,8 @@ class BombaController extends Controller
 
     public function update(Request $request, Bomba $bomba): RedirectResponse
     {
+        $this->authorize('update', $bomba);
+
         $validated = $this->validarDatos($request, $bomba->id);
 
         $bomba->update($validated);
@@ -66,39 +133,82 @@ class BombaController extends Controller
 
     public function destroy(Bomba $bomba): RedirectResponse
     {
+        $this->authorize('delete', $bomba);
+
         $bomba->delete();
 
         return redirect()->route('bombas.index')->with('status', 'Bomba eliminada.');
     }
 
+    
     public function encender(Request $request, Bomba $bomba): RedirectResponse
     {
         $this->authorize('controlar', $bomba);
 
-        $bomba->update(['encendido' => true]);
+        $bomba->update([
+            'encendido' => true,
+            'bloqueo_remoto' => false,
+        ]);
 
         return redirect()->route('bombas.show', $bomba->id)
-            ->with('status', 'Bomba encendida correctamente.');
+            ->with('status', 'Orden de encendido enviada correctamente.');
     }
 
     public function apagar(Request $request, Bomba $bomba): RedirectResponse
     {
         $this->authorize('controlar', $bomba);
 
-        $bomba->update(['encendido' => false]);
+        $bomba->update([
+            'encendido' => false,
+            'bloqueo_remoto' => true,
+        ]);
 
         return redirect()->route('bombas.show', $bomba->id)
-            ->with('status', 'Bomba apagada correctamente.');
+            ->with('status', 'Orden de apagado enviada. La bomba permanecerá bloqueada hasta volver a encenderla.');
+    }
+    public function cambiarModo(Request $request, Bomba $bomba): RedirectResponse
+{
+    $this->authorize('controlar', $bomba);
+
+    $validated = $request->validate([
+        'modo_operacion' => ['required', 'boolean'],
+    ]);
+
+    $nuevoModo = (bool) $validated['modo_operacion'];
+
+    $datos = [
+        'modo_operacion' => $nuevoModo,
+    ];
+
+    // Al cambiar de modo, se cancela cualquier bloqueo remoto anterior.
+    // En automático, el ESP32 decidirá cuándo arrancar según el nivel.
+    $datos['bloqueo_remoto'] = false;
+
+    // Al entrar en automático, se deja la decisión de encendido al ESP32.
+    // En manual, se conserva el estado de encendido actual.
+    if ($nuevoModo) {
+        $datos['encendido'] = false;
     }
 
+    $bomba->update($datos);
+
+    return redirect()
+        ->route('bombas.show', $bomba->id)
+        ->with(
+            'status',
+            $nuevoModo
+                ? 'Modo automático activado. El ESP32 controlará el llenado.'
+                : 'Modo manual activado.'
+        );
+    }
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([
-            'codigo' => ['required', 'string', 'max:30', Rule::unique('bombas', 'codigo')->ignore($ignorarId)],
-            'nombre' => ['required', 'string', 'max:100'],
-            'marca' => ['nullable', 'string', 'max:100'],
-            'modelo' => ['nullable', 'string', 'max:100'],
-            'serie' => ['required', 'string', 'max:80', Rule::unique('bombas', 'serie')->ignore($ignorarId)],
+            'codigo' => ['required', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO, Rule::unique('bombas', 'codigo')->ignore($ignorarId)],
+            'nombre' => ['required', 'string', 'max:100', 'regex:'.TextPatterns::NOMBRE_EQUIPO],
+            'marca' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'modelo' => ['nullable', 'string', 'max:100', 'regex:'.TextPatterns::MARCA_MODELO_SERIE],
+            'serie' => ['required', 'string', 'max:80', 'regex:'.TextPatterns::CODIGO, Rule::unique('bombas', 'serie')->ignore($ignorarId)],
             'potencia_hp' => ['nullable', 'numeric', 'gt:0'],
             'voltaje_nominal' => ['nullable', 'numeric', 'gt:0'],
             'corriente_nominal' => ['nullable', 'numeric', 'gte:0'],
@@ -111,12 +221,19 @@ class BombaController extends Controller
             'modo_operacion' => ['required', 'boolean'],
             'encendido' => ['required', 'boolean'],
             'estado' => ['required', Rule::in(self::ESTADOS)],
-            'tanque_codigo' => ['nullable', 'string', 'max:30'],
+            'tanque_codigo' => ['nullable', 'string', 'max:30', 'regex:'.TextPatterns::CODIGO],
             'tanque_capacidad_litros' => ['nullable', 'numeric', 'gt:0'],
             'tanque_altura_metros' => ['nullable', 'numeric', 'gte:0'],
             'tanque_diametro_metros' => ['nullable', 'numeric', 'gte:0'],
             'observaciones' => ['nullable', 'string'],
             'centros_salud_id' => ['required', 'exists:centros_salud,id'],
+        ], [
+            'codigo.regex' => 'El código solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'nombre.regex' => 'El nombre no puede tener espacios dobles ni caracteres especiales.',
+            'marca.regex' => 'La marca no puede tener espacios dobles ni caracteres especiales.',
+            'modelo.regex' => 'El modelo no puede tener espacios dobles ni caracteres especiales.',
+            'serie.regex' => 'La serie solo puede contener letras, números, guiones y puntos (sin espacios).',
+            'tanque_codigo.regex' => 'El código del tanque solo puede contener letras, números, guiones y puntos (sin espacios).',
         ]);
     }
 }
