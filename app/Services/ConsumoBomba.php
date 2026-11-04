@@ -3,21 +3,10 @@
 namespace App\Services;
 
 use App\Models\Bomba;
+use App\Models\Sensor;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
-/**
- * Estima el agua bombeada a partir de los ciclos de funcionamiento que ya
- * registra `eventos_bomba` (BombaObserver, según la corriente medida).
- * No crea ni guarda nada: todo se calcula al consultar.
- *
- *   litros del ciclo completo = capacidad del tanque × (90 % − 30 %)
- *   caudal medio (L/min)      = litros del ciclo ÷ tiempo de llenado (min)
- *   litros de un período      = minutos funcionando × caudal medio
- *
- * Es agua BOMBEADA estimada. Equivale al consumo del centro solo si el tanque
- * empieza y termina el período al mismo nivel.
- */
 class ConsumoBomba
 {
     public const NIVEL_ENCENDIDO_PCT = 30;
@@ -25,15 +14,20 @@ class ConsumoBomba
 
     private const DIAS_CALIBRACION = 30;
     private const MIN_CICLOS_CALIBRACION = 3;
-    private const DURACION_MINIMA_MIN = 1.0; // ignora encendidos de ruido
+    private const DURACION_MINIMA_MIN = 1.0;
+    private const TELEMETRIA_MAX_SEGUNDOS = 120;
 
     private ?array $tiempoCache = null;
+    private bool $corrienteConsultada = false;
+    private ?Carbon $ultimaLecturaCorrienteCache = null;
 
     public function __construct(private readonly Bomba $bomba)
     {
     }
 
-    /** Litros que entran en un ciclo completo (30 % → 90 %), o null si no hay capacidad. */
+    /**
+     * Litros estimados entre los niveles de encendido y apagado.
+     */
     public function litrosPorCiclo(): ?float
     {
         $capacidad = (float) $this->bomba->tanque_capacidad_litros;
@@ -42,13 +36,13 @@ class ConsumoBomba
             return null;
         }
 
-        return $capacidad * (self::NIVEL_APAGADO_PCT - self::NIVEL_ENCENDIDO_PCT) / 100;
+        return $capacidad
+            * (self::NIVEL_APAGADO_PCT - self::NIVEL_ENCENDIDO_PCT)
+            / 100;
     }
 
     /**
-     * Minutos que tarda un llenado completo.
-     * 'configurado' = lo cargó una persona; 'estimado' = mediana de los ciclos
-     * reales de los últimos 30 días (necesita al menos 3).
+     * Tiempo de llenado configurado o estimado.
      *
      * @return array{minutos: ?float, origen: ?string, ciclos: int}
      */
@@ -61,14 +55,24 @@ class ConsumoBomba
         $configurado = (float) $this->bomba->tiempo_llenado_min;
 
         if ($configurado > 0) {
-            return $this->tiempoCache = ['minutos' => $configurado, 'origen' => 'configurado', 'ciclos' => 0];
+            return $this->tiempoCache = [
+                'minutos' => $configurado,
+                'origen' => 'configurado',
+                'ciclos' => 0,
+            ];
         }
 
         $desde = now()->subDays(self::DIAS_CALIBRACION);
 
         $duraciones = $this->intervalos($desde, now())
-            ->filter(fn ($i) => ! $i['en_curso'] && $i['inicio']->greaterThanOrEqualTo($desde))
-            ->map(fn ($i) => ($i['fin']->getTimestamp() - $i['inicio']->getTimestamp()) / 60)
+            ->filter(fn ($i) =>
+                ! $i['en_curso']
+                && ! $i['telemetria_desactualizada']
+                && $i['inicio']->greaterThanOrEqualTo($desde)
+            )
+            ->map(fn ($i) =>
+                ($i['fin']->getTimestamp() - $i['inicio']->getTimestamp()) / 60
+            )
             ->filter(fn ($min) => $min >= self::DURACION_MINIMA_MIN)
             ->sort()
             ->values();
@@ -76,18 +80,84 @@ class ConsumoBomba
         $n = $duraciones->count();
 
         if ($n < self::MIN_CICLOS_CALIBRACION) {
-            return $this->tiempoCache = ['minutos' => null, 'origen' => null, 'ciclos' => $n];
+            return $this->tiempoCache = [
+                'minutos' => null,
+                'origen' => null,
+                'ciclos' => $n,
+            ];
         }
 
         $mitad = intdiv($n, 2);
+
         $mediana = $n % 2 === 1
             ? $duraciones[$mitad]
             : ($duraciones[$mitad - 1] + $duraciones[$mitad]) / 2;
 
-        return $this->tiempoCache = ['minutos' => round($mediana, 1), 'origen' => 'estimado', 'ciclos' => $n];
+        return $this->tiempoCache = [
+            'minutos' => round($mediana, 1),
+            'origen' => 'estimado',
+            'ciclos' => $n,
+        ];
     }
 
-    /** Caudal medio estimado en litros por minuto, o null si faltan datos. */
+    /**
+     * Obtiene la última lectura de corriente de esta bomba.
+     */
+    private function ultimaLecturaCorriente(): ?Carbon
+    {
+        if ($this->corrienteConsultada) {
+            return $this->ultimaLecturaCorrienteCache?->copy();
+        }
+
+        $this->corrienteConsultada = true;
+
+        $sensor = Sensor::query()
+            ->where('bombas_id', $this->bomba->id)
+            ->where('tipo', 'corriente')
+            ->first();
+
+        if (! $sensor) {
+            return null;
+        }
+
+        $lectura = $sensor->lecturas()
+            ->orderByDesc('fecha_hora')
+            ->first();
+
+        if ($lectura && $lectura->fecha_hora) {
+            $this->ultimaLecturaCorrienteCache =
+                $lectura->fecha_hora->copy();
+        }
+
+        return $this->ultimaLecturaCorrienteCache?->copy();
+    }
+
+    /**
+     * Duración máxima que se acepta como ciclo verificable.
+     *
+     * Se utiliza el tiempo de llenado configurado más el margen de
+     * advertencia. Un intervalo superior se conserva en el historial,
+     * pero no genera litros ni tiempo de funcionamiento confirmado.
+     */
+    private function duracionMaximaVerificableSegundos(): int
+    {
+        $llenado = (float) $this->bomba->tiempo_llenado_min;
+
+        if ($llenado <= 0) {
+            $llenado = self::DURACION_MINIMA_MIN;
+        }
+
+        $margen = (int) config(
+            'monitoreo.tiempo_advertencia_minutos',
+            15
+        );
+
+        return (int) ceil(($llenado + max(0, $margen)) * 60);
+    }
+
+    /**
+     * Caudal estimado en litros por minuto.
+     */
     public function caudalLpm(): ?float
     {
         $litros = $this->litrosPorCiclo();
@@ -101,11 +171,20 @@ class ConsumoBomba
     }
 
     /**
-     * Periodos de funcionamiento (encendido → apagado) entre $desde y $hasta.
-     * Si la bomba ya estaba funcionando al llegar a $desde, el ciclo se cuenta
-     * desde su inicio real. Un ciclo sin apagado se cierra "ahora" (en_curso).
+     * Obtiene intervalos registrados por los eventos de la bomba.
      *
-     * @return Collection<int, array{inicio: Carbon, fin: Carbon, en_curso: bool}>
+     * Los intervalos excesivamente largos se conservan en el detalle,
+     * pero se marcan como no verificables.
+     *
+     * Los intervalos abiertos nunca se prolongan después de la última
+     * lectura de corriente disponible.
+     *
+     * @return Collection<int, array{
+     *     inicio: Carbon,
+     *     fin: Carbon,
+     *     en_curso: bool,
+     *     telemetria_desactualizada: bool
+     * }>
      */
     public function intervalos(Carbon $desde, Carbon $hasta): Collection
     {
@@ -120,41 +199,125 @@ class ConsumoBomba
             ->orderBy('fecha_hora')
             ->get();
 
-        $inicio = ($previo && $previo->encendido) ? $previo->fecha_hora->copy() : null;
+        $inicio = ($previo && $previo->encendido)
+            ? $previo->fecha_hora->copy()
+            : null;
+
         $intervalos = collect();
+
+        $maxDuracion = $this->duracionMaximaVerificableSegundos();
 
         foreach ($eventos as $evento) {
             if ($evento->encendido) {
                 $inicio ??= $evento->fecha_hora->copy();
-            } elseif ($inicio !== null) {
-                $intervalos->push(['inicio' => $inicio, 'fin' => $evento->fecha_hora->copy(), 'en_curso' => false]);
-                $inicio = null;
+                continue;
             }
+
+            if ($inicio === null) {
+                continue;
+            }
+
+            $fin = $evento->fecha_hora->copy();
+
+            $duracion = max(
+                0,
+                $fin->getTimestamp() - $inicio->getTimestamp()
+            );
+
+            $intervalos->push([
+                'inicio' => $inicio->copy(),
+                'fin' => $fin,
+                'en_curso' => false,
+                'telemetria_desactualizada' =>
+                    $duracion > $maxDuracion,
+            ]);
+
+            $inicio = null;
         }
 
         if ($inicio !== null) {
-            $fin = now()->lessThan($hasta) ? now() : $hasta->copy();
-            $intervalos->push(['inicio' => $inicio, 'fin' => $fin, 'en_curso' => true]);
+            $ahora = now();
+            $ultimaLectura = $this->ultimaLecturaCorriente();
+
+            $fin = $ahora->lessThan($hasta)
+                ? $ahora->copy()
+                : $hasta->copy();
+
+            if ($ultimaLectura === null) {
+                $fin = $inicio->copy();
+            } elseif ($ultimaLectura->lessThan($fin)) {
+                $fin = $ultimaLectura->copy();
+            }
+
+            // Una lectura antigua no demuestra que la bomba siga
+            // funcionando actualmente.
+            $telemetriaDesactualizada = $ultimaLectura === null
+                || $ultimaLectura->lt(
+                    $ahora->copy()->subSeconds(
+                        self::TELEMETRIA_MAX_SEGUNDOS
+                    )
+                );
+
+            // También se descartan del cálculo los intervalos abiertos
+            // anormalmente largos.
+            $duracion = max(
+                0,
+                $fin->getTimestamp() - $inicio->getTimestamp()
+            );
+
+            if ($duracion > $maxDuracion) {
+                $telemetriaDesactualizada = true;
+            }
+
+            $intervalos->push([
+                'inicio' => $inicio->copy(),
+                'fin' => $fin,
+                'en_curso' => true,
+                'telemetria_desactualizada' =>
+                    $telemetriaDesactualizada,
+            ]);
         }
 
         return $intervalos;
     }
 
-    /** Ciclos, tiempo funcionando y litros estimados dentro de [$ini, $fin). */
-    public function resumenPeriodo(Collection $intervalos, Carbon $ini, Carbon $fin): array
-    {
+    /**
+     * Resume el tiempo y los litros verificables de un período.
+     *
+     * Los intervalos marcados como no verificables no suman tiempo,
+     * ciclos ni litros al resumen.
+     */
+    public function resumenPeriodo(
+        Collection $intervalos,
+        Carbon $ini,
+        Carbon $fin
+    ): array {
         $segundos = 0;
         $ciclos = 0;
 
         foreach ($intervalos as $i) {
-            $a = max($i['inicio']->getTimestamp(), $ini->getTimestamp());
-            $b = min($i['fin']->getTimestamp(), $fin->getTimestamp());
+            if ($i['telemetria_desactualizada'] ?? false) {
+                continue;
+            }
+
+            $a = max(
+                $i['inicio']->getTimestamp(),
+                $ini->getTimestamp()
+            );
+
+            $b = min(
+                $i['fin']->getTimestamp(),
+                $fin->getTimestamp()
+            );
 
             if ($b > $a) {
                 $segundos += $b - $a;
             }
 
-            if ($i['inicio']->greaterThanOrEqualTo($ini) && $i['inicio']->lessThan($fin)) {
+            if (
+                $i['inicio']->greaterThanOrEqualTo($ini)
+                && $i['inicio']->lessThan($fin)
+            ) {
                 $ciclos++;
             }
         }
@@ -164,13 +327,14 @@ class ConsumoBomba
         return [
             'segundos' => $segundos,
             'ciclos' => $ciclos,
-            'litros' => $caudal !== null ? round($segundos / 60 * $caudal) : null,
+            'litros' => $caudal !== null
+                ? (int) round($segundos / 60 * $caudal)
+                : null,
         ];
     }
 
     /**
-     * Resumen de un rango de días (ambos extremos incluidos): total, desglose
-     * diario (el día más reciente primero) y detalle de cada ciclo.
+     * Resumen de un rango de días, ambos extremos incluidos.
      */
     public function periodo(Carbon $desde, Carbon $hasta): array
     {
@@ -180,28 +344,55 @@ class ConsumoBomba
 
         $intervalos = $this->intervalos($primerDia, $fin);
 
-        $nDias = (int) round(($ultimoDia->getTimestamp() - $primerDia->getTimestamp()) / 86400) + 1;
+        $nDias = (int) round(
+            ($ultimoDia->getTimestamp() - $primerDia->getTimestamp())
+            / 86400
+        ) + 1;
 
         $dias = [];
+
         for ($k = 0; $k < $nDias; $k++) {
             $ini = $ultimoDia->copy()->subDays($k);
-            $dias[] = ['etiqueta' => ucfirst($ini->translatedFormat('D d/m/Y'))]
-                + $this->resumenPeriodo($intervalos, $ini, $ini->copy()->addDay());
+
+            $dias[] = [
+                'etiqueta' => ucfirst(
+                    $ini->translatedFormat('D d/m/Y')
+                ),
+            ] + $this->resumenPeriodo(
+                $intervalos,
+                $ini,
+                $ini->copy()->addDay()
+            );
         }
 
         $caudal = $this->caudalLpm();
 
         $detalle = $intervalos
-            ->filter(fn ($i) => $i['fin']->getTimestamp() > $primerDia->getTimestamp() && $i['inicio']->lessThan($fin))
+            ->filter(fn ($i) =>
+                $i['fin']->getTimestamp() > $primerDia->getTimestamp()
+                && $i['inicio']->lessThan($fin)
+            )
             ->map(function ($i) use ($caudal) {
-                $min = ($i['fin']->getTimestamp() - $i['inicio']->getTimestamp()) / 60;
+                $minutos = max(
+                    0,
+                    $i['fin']->getTimestamp()
+                    - $i['inicio']->getTimestamp()
+                ) / 60;
+
+                $noVerificable =
+                    $i['telemetria_desactualizada'] ?? false;
 
                 return [
                     'inicio' => $i['inicio'],
                     'fin' => $i['fin'],
                     'en_curso' => $i['en_curso'],
-                    'minutos' => round($min, 1),
-                    'litros' => $caudal !== null ? round($min * $caudal) : null,
+                    'telemetria_desactualizada' => $noVerificable,
+                    'minutos' => round($minutos, 1),
+                    'litros' => (
+                        $caudal !== null && ! $noVerificable
+                    )
+                        ? (int) round($minutos * $caudal)
+                        : null,
                 ];
             })
             ->reverse()
@@ -210,15 +401,18 @@ class ConsumoBomba
 
         return [
             'n_dias' => $nDias,
-            'total' => $this->resumenPeriodo($intervalos, $primerDia, $fin),
+            'total' => $this->resumenPeriodo(
+                $intervalos,
+                $primerDia,
+                $fin
+            ),
             'dias' => $dias,
             'detalle' => $detalle,
         ];
     }
 
     /**
-     * Últimos 14 días, 8 semanas (lunes a domingo) y 6 meses, más el período actual.
-     * Todo se calcula con una sola consulta de ciclos.
+     * Series de los últimos 14 días, 8 semanas y 6 meses.
      */
     public function series(): array
     {
@@ -226,28 +420,60 @@ class ConsumoBomba
 
         $primerDia = $ahora->copy()->startOfDay()->subDays(13);
         $primeraSemana = $ahora->copy()->startOfWeek()->subWeeks(7);
-        $primerMes = $ahora->copy()->startOfMonth()->subMonthsNoOverflow(5);
+        $primerMes = $ahora->copy()
+            ->startOfMonth()
+            ->subMonthsNoOverflow(5);
 
-        $intervalos = $this->intervalos(min($primerDia, $primeraSemana, $primerMes), $ahora);
+        $desde = min($primerDia, $primeraSemana, $primerMes);
 
-        $dias = $semanas = $meses = [];
+        $intervalos = $this->intervalos($desde, $ahora);
+
+        $dias = [];
+        $semanas = [];
+        $meses = [];
 
         for ($k = 0; $k < 14; $k++) {
             $ini = $ahora->copy()->startOfDay()->subDays($k);
-            $dias[] = ['etiqueta' => ucfirst($ini->translatedFormat('D d/m'))]
-                + $this->resumenPeriodo($intervalos, $ini, $ini->copy()->addDay());
+
+            $dias[] = [
+                'etiqueta' => ucfirst(
+                    $ini->translatedFormat('D d/m')
+                ),
+            ] + $this->resumenPeriodo(
+                $intervalos,
+                $ini,
+                $ini->copy()->addDay()
+            );
         }
 
         for ($k = 0; $k < 8; $k++) {
             $ini = $ahora->copy()->startOfWeek()->subWeeks($k);
-            $semanas[] = ['etiqueta' => $ini->format('d/m').' – '.$ini->copy()->addDays(6)->format('d/m')]
-                + $this->resumenPeriodo($intervalos, $ini, $ini->copy()->addWeek());
+
+            $semanas[] = [
+                'etiqueta' => $ini->format('d/m')
+                    . ' – '
+                    . $ini->copy()->addDays(6)->format('d/m'),
+            ] + $this->resumenPeriodo(
+                $intervalos,
+                $ini,
+                $ini->copy()->addWeek()
+            );
         }
 
         for ($k = 0; $k < 6; $k++) {
-            $ini = $ahora->copy()->startOfMonth()->subMonthsNoOverflow($k);
-            $meses[] = ['etiqueta' => ucfirst($ini->translatedFormat('F Y'))]
-                + $this->resumenPeriodo($intervalos, $ini, $ini->copy()->addMonth());
+            $ini = $ahora->copy()
+                ->startOfMonth()
+                ->subMonthsNoOverflow($k);
+
+            $meses[] = [
+                'etiqueta' => ucfirst(
+                    $ini->translatedFormat('F Y')
+                ),
+            ] + $this->resumenPeriodo(
+                $intervalos,
+                $ini,
+                $ini->copy()->addMonth()
+            );
         }
 
         return [

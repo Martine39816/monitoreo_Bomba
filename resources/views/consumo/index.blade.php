@@ -148,15 +148,19 @@
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach ($resultado['detalle'] as $c)
                                         <tr>
-                                            <td class="py-2 pr-3 text-gray-700">{{ $c['inicio']->format('d/m H:i:s') }}</td>
                                             <td class="py-2 pr-3 text-gray-700">
-                                                @if ($c['en_curso'])
-                                                    <span class="inline-flex items-center gap-1.5 text-green-700 font-semibold">
-                                                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> En curso
+                                                @if ($c['en_curso'] && ($c['telemetria_desactualizada'] ?? false))
+                                                    <span class="text-amber-700 font-semibold">
+                                                        Sin datos recientes
                                                     </span>
-                                                @else
-                                                    {{ $c['fin']->format('d/m H:i:s') }}
-                                                @endif
+@elseif ($c['en_curso'])
+    <span class="inline-flex items-center gap-1.5 text-green-700 font-semibold">
+        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+        En curso
+    </span>
+@else
+    {{ $c['fin']->format('d/m H:i:s') }}
+@endif
                                             </td>
                                             <td class="py-2 pr-3 text-right text-gray-600">{{ rtrim(rtrim(number_format($c['minutos'], 1, '.', ''), '0'), '.') }} min</td>
                                             <td class="py-2 text-right font-semibold text-gray-800">{{ $fmtLitros($c['litros']) }}</td>

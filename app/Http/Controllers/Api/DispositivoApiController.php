@@ -197,7 +197,7 @@ class DispositivoApiController extends Controller
             'bombas_id' => $sensor->bombas_id,
         ]);
 
-        return true;
+            return true;
     }
 
     private function mapearTipoAlerta(string $tipoSensor, string $direccion): string

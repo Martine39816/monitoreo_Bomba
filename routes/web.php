@@ -86,8 +86,20 @@ Route::middleware(['auth'])->group(function () {
 
 // Control remoto de bombas: Administrador y Técnico
 Route::middleware(['auth', 'role:administrador,tecnico', 'throttle:control-bomba'])->group(function () {
-    Route::post('/bombas/{bomba}/encender', [\App\Http\Controllers\BombaController::class, 'encender'])->name('bombas.encender');
-    Route::post('/bombas/{bomba}/apagar', [\App\Http\Controllers\BombaController::class, 'apagar'])->name('bombas.apagar');
+    Route::post(
+        '/bombas/{bomba}/encender',
+        [\App\Http\Controllers\BombaController::class, 'encender']
+    )->name('bombas.encender');
+
+    Route::post(
+        '/bombas/{bomba}/apagar',
+        [\App\Http\Controllers\BombaController::class, 'apagar']
+    )->name('bombas.apagar');
+
+    Route::post(
+        '/bombas/{bomba}/modo',
+        [\App\Http\Controllers\BombaController::class, 'cambiarModo']
+    )->name('bombas.modo');
 });
 
 require __DIR__.'/consumo.php';
