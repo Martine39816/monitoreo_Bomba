@@ -142,31 +142,30 @@ class BombaController extends Controller
 
     
     public function encender(Request $request, Bomba $bomba): RedirectResponse
-    {
-        $this->authorize('controlar', $bomba);
+{
+    $this->authorize('controlar', $bomba);
 
-        $bomba->update([
-            'encendido' => true,
-            'bloqueo_remoto' => false,
-        ]);
+    $bomba->update([
+        'encendido' => true,
+        'bloqueo_remoto' => false,
+    ]);
 
-        return redirect()->route('bombas.show', $bomba->id)
-            ->with('status', 'Orden de encendido enviada correctamente.');
-    }
+    return back()->with('status', 'Orden de encendido enviada correctamente.');
+}
 
-    public function apagar(Request $request, Bomba $bomba): RedirectResponse
-    {
-        $this->authorize('controlar', $bomba);
+public function apagar(Request $request, Bomba $bomba): RedirectResponse
+{
+    $this->authorize('controlar', $bomba);
 
-        $bomba->update([
-            'encendido' => false,
-            'bloqueo_remoto' => true,
-        ]);
+    $bomba->update([
+        'encendido' => false,
+        'bloqueo_remoto' => true,
+    ]);
 
-        return redirect()->route('bombas.show', $bomba->id)
-            ->with('status', 'Orden de apagado enviada. La bomba permanecerá bloqueada hasta volver a encenderla.');
-    }
-    public function cambiarModo(Request $request, Bomba $bomba): RedirectResponse
+    return back()->with('status', 'Orden de apagado enviada. La bomba permanecerá bloqueada hasta volver a encenderla.');
+}
+
+public function cambiarModo(Request $request, Bomba $bomba): RedirectResponse
 {
     $this->authorize('controlar', $bomba);
 
@@ -178,29 +177,22 @@ class BombaController extends Controller
 
     $datos = [
         'modo_operacion' => $nuevoModo,
+        'bloqueo_remoto' => false,
     ];
 
-    // Al cambiar de modo, se cancela cualquier bloqueo remoto anterior.
-    // En automático, el ESP32 decidirá cuándo arrancar según el nivel.
-    $datos['bloqueo_remoto'] = false;
-
-    // Al entrar en automático, se deja la decisión de encendido al ESP32.
-    // En manual, se conserva el estado de encendido actual.
     if ($nuevoModo) {
         $datos['encendido'] = false;
     }
 
     $bomba->update($datos);
 
-    return redirect()
-        ->route('bombas.show', $bomba->id)
-        ->with(
-            'status',
-            $nuevoModo
-                ? 'Modo automático activado. El ESP32 controlará el llenado.'
-                : 'Modo manual activado.'
-        );
-    }
+    return back()->with(
+        'status',
+        $nuevoModo
+            ? 'Modo automático activado. El ESP32 controlará el llenado.'
+            : 'Modo manual activado.'
+    );
+}
     private function validarDatos(Request $request, ?int $ignorarId = null): array
     {
         return $request->validate([

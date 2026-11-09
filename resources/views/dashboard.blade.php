@@ -83,7 +83,7 @@
                  CONTROL RÁPIDO DE BOMBAS
                  (componente con filtros, búsqueda y paginación)
                  ========================================== --}}
-            @if (Auth::user()->tieneRol('administrador', 'tecnico'))
+            @if (Auth::user()->tieneRol('administrador', 'tecnico', 'director'))
                 <x-control-rapido-bombas />
             @endif
 

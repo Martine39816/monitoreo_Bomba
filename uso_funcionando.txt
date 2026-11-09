@@ -1,0 +1,41 @@
+﻿app\Http\Controllers\Api\BombaApiController.php:36: 'funcionando' => $bomba->funcionando,
+app\Http\Controllers\Api\ConsumoApiController.php:89: 'funcionando' => $bomba->funcionando,
+app\Http\Controllers\Api\DispositivoApiController.php:43: // La corriente es la fuente de verdad de si la bomba esta funcionando.
+app\Http\Controllers\Api\DispositivoApiController.php:51: && $bomba && ! $bomba->funcionando && ! $cambioDeEstado) {
+app\Http\Controllers\Api\DispositivoApiController.php:86: 'funcionando' => (bool) $bomba->funcionando,
+app\Http\Controllers\Api\DispositivoApiController.php:107: * Decide si la bomba esta funcionando segun la corriente medida.
+app\Http\Controllers\Api\DispositivoApiController.php:122: if (! $bomba->funcionando && $corriente >= $umbralOn) {
+app\Http\Controllers\Api\DispositivoApiController.php:124: } elseif ($bomba->funcionando && $corriente < $umbralOff) {
+app\Http\Controllers\Api\DispositivoApiController.php:144: $bomba->update(['funcionando' => $sugerido]); // el Observer registra el evento
+app\Http\Controllers\DashboardController.php:71: $bombasFuncionando = (clone $bombasBaseQuery)
+app\Http\Controllers\DashboardController.php:72: ->where('funcionando', true)
+app\Http\Controllers\DashboardController.php:99: 'bombas_encendidas' => $bombasFuncionando,
+app\Http\Controllers\DashboardController.php:148: $bombasQuery->where('funcionando', true);
+app\Http\Controllers\DashboardController.php:152: $bombasQuery->where('funcionando', false);
+app\Models\Bomba.php:34: 'funcionando',
+app\Models\Bomba.php:48: 'funcionando' => 'boolean',
+app\Models\Bomba.php:93: * Minutos que la bomba lleva funcionando
+app\Models\Bomba.php:98: if (! $this->funcionando) {
+app\Observers\BombaObserver.php:16: if (! $bomba->wasChanged('funcionando')) {
+app\Observers\BombaObserver.php:22: 'encendido' => $bomba->funcionando,
+app\Services\ConsumoBomba.php:253: // funcionando actualmente.
+resources\views\bombas\index.blade.php:216: $estado === 'funcionando' ||
+resources\views\bombas\index.blade.php:224: $estadoTexto = 'Funcionando';
+resources\views\bombas\index.blade.php:393: $estado === 'funcionando' ||
+resources\views\bombas\index.blade.php:399: {{-- FUNCIONANDO --}}
+resources\views\bombas\index.blade.php:427: FUNCIONANDO
+resources\views\components\control-rapido-bombas.blade.php:57: Funcionando
+resources\views\components\control-rapido-bombas.blade.php:101: $funcionando = (bool) $b->funcionando;
+resources\views\components\control-rapido-bombas.blade.php:121: $bloquearEncender = $funcionando && !$modoAutomatico;
+resources\views\components\control-rapido-bombas.blade.php:122: $bloquearApagar   = !$funcionando && !$modoAutomatico;
+resources\views\components\control-rapido-bombas.blade.php:136: {{ $funcionando ? 'bg-green-500' : 'bg-gray-300' }}"
+resources\views\components\control-rapido-bombas.blade.php:137: title="{{ $funcionando ? 'Funcionando realmente' : 'Apagada' }}">
+resources\views\components\control-rapido-bombas.blade.php:162: {{ $funcionando ? 'text-green-600' : 'text-gray-500' }}">
+resources\views\components\control-rapido-bombas.blade.php:163: {{ $funcionando ? '● Funcionando' : '● Apagada' }}
+resources\views\components\control-rapido-bombas.blade.php:222: title="{{ $bloquearEncender ? 'La bomba ya está funcionando' : '' }}"
+resources\views\consumo\index.blade.php:117: <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Funcionando</p>
+resources\views\consumo\index.blade.php:186: <th class="py-2 pr-3 text-right">Funcionando</th>
+resources\views\consumo\index.blade.php:286: Los litros son una estimación del agua bombeada al tanque alto (tiempo funcionando × caudal medio),
+resources\views\dashboard.blade.php:122: <p class="text-center text-gray-400 py-6">No hay alertas pendientes. Todo funcionando con normalidad. ✅</p>
+database\migrations\2026_09_28_014316_add_funcionando_to_bombas_table.php:12: $table->boolean('funcionando')->default(false)->after('encendido');
+database\migrations\2026_09_28_014316_add_funcionando_to_bombas_table.php:19: $table->dropColumn('funcionando');

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class Bomba extends Model
 {
@@ -39,6 +40,10 @@ class Bomba extends Model
         'tanque_diametro_metros',
         'observaciones',
         'centros_salud_id',
+        'nivel_tanque_estimado_pct',
+        'nivel_tanque_ultimo_lleno_en',
+        'nivel_tanque_ultimo_inicio_en',
+        'nivel_tanque_consumo_lpm',
     ];
 
     protected $casts = [
@@ -47,6 +52,10 @@ class Bomba extends Model
         'bloqueo_remoto' => 'boolean',
         'funcionando' => 'boolean',
         'fecha_instalacion' => 'date',
+        'nivel_tanque_estimado_pct' => 'decimal:2',
+        'nivel_tanque_ultimo_lleno_en' => 'datetime',
+        'nivel_tanque_ultimo_inicio_en' => 'datetime',
+        'nivel_tanque_consumo_lpm' => 'decimal:4',
     ];
 
     public function centroSalud(): BelongsTo
@@ -124,5 +133,50 @@ class Bomba extends Model
                 now()->subMinutes($minutos)
             )
             ->count();
+    }
+
+    /**
+     * Marca de tiempo (unix) de la ultima senal de un sensor de corriente
+     * de esta bomba. La escribe DispositivoApiController en cada lectura recibida.
+     */
+    public function ultimaSenalCorriente(): ?int
+    {
+        $ultima = null;
+
+        foreach ($this->sensores()->where('tipo', 'corriente')->pluck('id') as $id) {
+            $ts = Cache::store('file')->get('sensor_visto_'.$id);
+
+            if ($ts && (! $ultima || $ts > $ultima)) {
+                $ultima = (int) $ts;
+            }
+        }
+
+        return $ultima;
+    }
+
+    /**
+     * Si dice "funcionando" pero el sensor de corriente lleva demasiado tiempo
+     * sin reportar, la bomba se marca como detenida.
+     */
+    public function sincronizarFuncionamiento(): void
+    {
+        if (! $this->funcionando) {
+            return;
+        }
+
+        // Sin sensor de corriente no hay forma de contrastar: no se toca.
+        if (! $this->sensores()->where('tipo', 'corriente')->exists()) {
+            return;
+        }
+
+        $limite = now()
+            ->subSeconds((int) config('monitoreo.corriente_sin_senal_segundos', 120))
+            ->timestamp;
+
+        $ultima = $this->ultimaSenalCorriente();
+
+        if ($ultima === null || $ultima < $limite) {
+            $this->update(['funcionando' => false]); // el Observer registra el evento
+        }
     }
 }

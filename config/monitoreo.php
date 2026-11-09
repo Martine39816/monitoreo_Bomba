@@ -34,5 +34,8 @@ return [
     // Si pasa este tiempo sin una lectura que continue la racha, la cuenta
     // de confirmacion se reinicia.
     'corriente_confirmacion_ventana_segundos' => (int) env('BOMBA_CORRIENTE_VENTANA_SEG', 90),
+        // Segundos sin señal del sensor de corriente tras los cuales la bomba
+    // se considera detenida aunque la base de datos diga "funcionando".
+    'corriente_sin_senal_segundos' => (int) env('BOMBA_SIN_SENAL_SEG', 120),
 
 ];

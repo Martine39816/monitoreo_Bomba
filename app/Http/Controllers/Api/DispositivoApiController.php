@@ -84,7 +84,8 @@ class DispositivoApiController extends Controller
         return response()->json([
             'encendido' => (bool) $bomba->encendido,
             'funcionando' => (bool) $bomba->funcionando,
-            'modo_operacion' => (int) $bomba->modo_operacion, // 0 = manual, 1 = automatico
+            'modo_operacion' => (int) $bomba->modo_operacion,
+            'bloqueo_remoto' => (bool) $bomba->bloqueo_remoto,
         ]);
     }
 
