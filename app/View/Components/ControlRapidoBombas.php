@@ -22,16 +22,12 @@ class ControlRapidoBombas extends Component
         $request = request();
         $usuario = $request->user();
 
-        $query = Bomba::with('centroSalud:id,nombre')
+        $query = Bomba::visiblesPara($usuario)
+            ->with('centroSalud:id,nombre')
             ->withCount(['alertas as alertas_pendientes' => fn ($q) => $q->where('atendida', false)]);
 
-        $centros = CentroSalud::orderBy('nombre');
-
-        // Solo el Administrador ve todos los centros.
-        if (! $usuario->esAdministrador()) {
-            $query->where('centros_salud_id', $usuario->centros_salud_id);
-            $centros->where('id', $usuario->centros_salud_id);
-        }
+        // Administrador y Técnico ven todos los centros; el Director solo el suyo.
+        $centros = CentroSalud::visiblesPara($usuario)->orderBy('nombre');
 
         if ($request->filled('centro')) {
             $query->where('centros_salud_id', $request->input('centro'));

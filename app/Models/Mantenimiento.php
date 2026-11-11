@@ -38,4 +38,14 @@ class Mantenimiento extends Model
     {
         return $this->belongsTo(Alerta::class, 'alertas_id');
     }
+
+    /** Registros visibles segun el centro de la bomba asociada. */
+    public function scopeVisiblesPara($query, User $usuario)
+    {
+        if ($usuario->veTodosLosCentros()) {
+            return $query;
+        }
+
+        return $query->whereHas('bomba', fn ($q) => $q->visiblesPara($usuario));
+    }
 }

@@ -9,13 +9,23 @@ class AlertaComposer
 {
     public function compose(View $view): void
     {
-        $pendientes = Alerta::where('atendida', false)
+        $usuario = auth()->user();
+
+        if (! $usuario) {
+            $view->with('alertasPendientesCount', 0);
+            $view->with('alertasPendientesRecientes', collect());
+
+            return;
+        }
+
+        // Administrador y Técnico: todas las alertas. Director: solo las de su centro.
+        $base = Alerta::visiblesPara($usuario)->where('atendida', false);
+
+        $view->with('alertasPendientesCount', (clone $base)->count());
+        $view->with('alertasPendientesRecientes', (clone $base)
             ->with('bomba')
             ->orderBy('fecha_hora', 'desc')
             ->limit(5)
-            ->get();
-
-        $view->with('alertasPendientesCount', Alerta::where('atendida', false)->count());
-        $view->with('alertasPendientesRecientes', $pendientes);
+            ->get());
     }
 }

@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-class BombaController extends Controller
+class BombaApiController extends Controller
 {
     use AuthorizesRequests;
 
@@ -28,20 +28,44 @@ class BombaController extends Controller
      */
     private const ALERTAS_RECIENTES = 15;
 
-    public function index(Request $request): View
-    {
-        $usuario = $request->user();
+    public function index(Request $request)
+{
+    $usuario = $request->user();
 
-        $query = Bomba::with('centroSalud')->orderBy('id', 'desc');
+    // El ESP32 se autentica por device.auth, no por usuario.
+    if (! $usuario) {
+        $dispositivo = $request->attributes->get('dispositivo');
+        abort_unless($dispositivo, 401, 'Dispositivo no autenticado.');
 
-        // Solo el Administrador ve las bombas de todos los centros.
-        if (! $usuario->esAdministrador()) {
-            $query->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        $bombas = Bomba::where('centros_salud_id', $dispositivo->centros_salud_id)
+            ->with('centroSalud:id,nombre')
+            ->orderBy('id', 'desc')->get();
+    } else {
+        // Administrador y técnico: todos. Director: únicamente su centro.
+        $bombas = Bomba::visiblesPara($usuario)
+            ->with('centroSalud:id,nombre')
+            ->orderByDesc('id')->get();
+    }
 
-        $bombas = $query->get();
+    if ($request->is('api/*') || $request->expectsJson()) {
+        return response()->json($bombas->map(fn (Bomba $b) => [
+                'id' => $b->id,
+                'codigo' => $b->codigo,
+                'nombre' => $b->nombre,
+                'estado' => $b->estado,
+                'encendido' => (bool) $b->encendido,
+                'funcionando' => (bool) $b->funcionando,
+                'modo_operacion' => (bool) $b->modo_operacion,
+                'bloqueo_remoto' => (bool) $b->bloqueo_remoto,
+                'centros_salud_id' => $b->centros_salud_id,
+                'centro_salud' => $b->centroSalud?->nombre,
+                'nivel_tanque_estimado_pct' => $b->nivel_tanque_estimado_pct,
+                'tanque_capacidad_litros' => $b->tanque_capacidad_litros,
+            ])->values());
+    }
 
-        return view('bombas.index', compact('bombas'));
+    // Conserva la vista web existente.
+    return view('bombas.index', compact('bombas'));
     }
 
     public function create(): View
@@ -89,11 +113,7 @@ class BombaController extends Controller
 
         // Datos para el selector Centro de Salud -> Bomba (respeta el rol).
         $usuario = $request->user();
-        $visibles = Bomba::with('centroSalud:id,nombre')->orderBy('nombre');
-
-        if (! $usuario->esAdministrador()) {
-            $visibles->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        $visibles = Bomba::visiblesPara($usuario)->with('centroSalud:id,nombre')->orderBy('nombre');
 
         $selector = $visibles->get()->map(fn (Bomba $b) => [
             'id' => $b->id,

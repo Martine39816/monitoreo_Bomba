@@ -20,16 +20,12 @@ class SensorController extends Controller
     {
         $usuario = $request->user();
 
-        $query = Sensor::with(['bomba.centroSalud', 'dispositivoIot', 'ultimaLectura'])
+        // Administrador y Técnico ven todos los centros; el Director solo el suyo.
+        $query = Sensor::visiblesPara($usuario)
+            ->with(['bomba.centroSalud', 'dispositivoIot', 'ultimaLectura'])
             ->orderBy('id', 'desc');
 
-        $bombas = Bomba::orderBy('nombre');
-
-        // Solo el Administrador ve los sensores de todos los centros.
-        if (! $usuario->esAdministrador()) {
-            $query->whereHas('bomba', fn ($q) => $q->where('centros_salud_id', $usuario->centros_salud_id));
-            $bombas->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        $bombas = Bomba::visiblesPara($usuario)->orderBy('nombre');
 
         if ($request->filled('tipo')) {
             $query->where('tipo', $request->input('tipo'));

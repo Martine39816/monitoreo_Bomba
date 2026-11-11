@@ -88,6 +88,7 @@
          ========================================== --}}
     <aside
         style="background-color: #0f172a !important; opacity: 1 !important;"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
         class="
             sidebar-menu
             fixed
@@ -103,8 +104,6 @@
             transform
             transition-transform
             duration-300
-            -translate-x-full
-            lg:translate-x-0
         "
     >
 
@@ -268,6 +267,7 @@
                 >
 
                     {{-- BOMBAS --}}
+                    @if (auth()->user()->tieneRol('administrador', 'tecnico'))
                     <a
                         href="{{ route('bombas.index') }}"
                         @click="sidebarOpen = false"
@@ -298,9 +298,11 @@
                         </span>
 
                     </a>
+                    @endif
 
 
                     {{-- SENSORES --}}
+                    @if (auth()->user()->tieneRol('administrador', 'tecnico'))
                     <a
                         href="{{ route('sensores.index') }}"
                         @click="sidebarOpen = false"
@@ -337,6 +339,7 @@
                         </span>
 
                     </a>
+                    @endif
 
 
                     {{-- LECTURAS --}}
@@ -373,6 +376,7 @@
 
 
                     {{-- DISPOSITIVOS --}}
+                    @if (auth()->user()->tieneRol('administrador', 'tecnico'))
                     <a
                         href="{{ route('dispositivos.index') }}"
                         @click="sidebarOpen = false"
@@ -411,7 +415,17 @@
                         </span>
 
                     </a>
+                    @endif
 
+                    <a href="{{ route('consumo.index') }}" @click="sidebarOpen = false"
+                       class="flex items-center gap-3 px-4 py-3 ml-1 rounded-xl text-sm transition-all {{ request()->routeIs('consumo.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <span class="text-lg">💧</span><span>Consumo</span>
+                    </a>
+
+                    <a href="{{ route('reportes.index') }}" @click="sidebarOpen = false"
+                       class="flex items-center gap-3 px-4 py-3 ml-1 rounded-xl text-sm transition-all {{ request()->routeIs('reportes.*') ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                        <span class="text-lg">📊</span><span>Reportes</span>
+                    </a>
                 </div>
 
             </div>
@@ -525,6 +539,7 @@
                 >
 
                     {{-- CENTROS --}}
+                    @if (auth()->user()->tieneRol('administrador', 'tecnico'))
                     <a
                         href="{{ route('centros.index') }}"
                         @click="sidebarOpen = false"
@@ -555,9 +570,11 @@
                         </span>
 
                     </a>
+                    @endif
 
 
                     {{-- MANTENIMIENTOS --}}
+                    @if (auth()->user()->tieneRol('administrador', 'tecnico'))
                     <a
                         href="{{ route('mantenimientos.index') }}"
                         @click="sidebarOpen = false"
@@ -588,9 +605,11 @@
                         </span>
 
                     </a>
+                    @endif
 
 
                     {{-- USUARIOS --}}
+                    @if (auth()->user()->esAdministrador())
                     <a
                         href="{{ route('users.index') }}"
                         @click="sidebarOpen = false"
@@ -621,6 +640,7 @@
                         </span>
 
                     </a>
+                    @endif
 
                 </div>
 

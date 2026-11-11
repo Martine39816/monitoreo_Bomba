@@ -27,7 +27,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'nombre', 'apellido', 'correo', 'telefono', 'password',
-        'rol', 'estado', 'centros_salud_id',
+        'rol', 'estado', 'centros_salud_id','inactivado_en',
     ];
 
     protected $hidden = ['password', 'remember_token'];
@@ -38,6 +38,7 @@ class User extends Authenticatable
             'estado' => 'boolean',
             'ultimo_acceso' => 'datetime',
             'password' => 'hashed',
+            'inactivado_en' => 'datetime',
         ];
     }
 
@@ -93,5 +94,28 @@ class User extends Authenticatable
     public function tieneRol(string ...$roles): bool
     {
         return in_array($this->rol, $roles, true);
+    }
+
+    // ---- Alcance por centro de salud ----
+
+    /**
+     * Administrador y Tecnico trabajan sobre TODOS los centros.
+     * Solo el Director queda limitado a su centro asignado.
+     */
+    public function veTodosLosCentros(): bool
+    {
+        return $this->tieneRol(self::ROL_ADMINISTRADOR, self::ROL_TECNICO);
+    }
+
+    /** Indica si este usuario puede ver/consultar datos del centro indicado. */
+    public function puedeVerCentro(?int $centroId): bool
+    {
+        if ($this->veTodosLosCentros()) {
+            return true;
+        }
+
+        return $centroId !== null
+            && $this->centros_salud_id !== null
+            && (int) $this->centros_salud_id === (int) $centroId;
     }
 }

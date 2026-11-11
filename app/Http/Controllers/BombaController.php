@@ -31,12 +31,8 @@ class BombaController extends Controller
     {
         $usuario = $request->user();
 
-        $query = Bomba::with('centroSalud')->orderBy('id', 'desc');
-
-        // Solo el Administrador ve las bombas de todos los centros.
-        if (! $usuario->esAdministrador()) {
-            $query->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        // Administrador y Técnico ven todos los centros; el Director solo el suyo.
+        $query = Bomba::visiblesPara($usuario)->with('centroSalud')->orderBy('id', 'desc');
 
         $bombas = $query->get();
 
@@ -88,11 +84,7 @@ class BombaController extends Controller
 
         // Datos para el selector Centro de Salud -> Bomba (respeta el rol).
         $usuario = $request->user();
-        $visibles = Bomba::with('centroSalud:id,nombre')->orderBy('nombre');
-
-        if (! $usuario->esAdministrador()) {
-            $visibles->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        $visibles = Bomba::visiblesPara($usuario)->with('centroSalud:id,nombre')->orderBy('nombre');
 
         $selector = $visibles->get()->map(fn (Bomba $b) => [
             'id' => $b->id,

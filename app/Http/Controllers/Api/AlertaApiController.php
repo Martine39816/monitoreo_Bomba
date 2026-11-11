@@ -10,7 +10,7 @@ class AlertaApiController extends Controller
 {
     /**
      * Lista de alertas, más recientes primero.
-     * Administrador ve todas; Técnico/Director solo las de bombas
+     * Administrador y Técnico ven todas; el Director solo las de bombas
      * de su propio centro de salud.
      * Parámetro opcional: ?pendientes=1 para ver solo las no atendidas.
      */
@@ -18,14 +18,9 @@ class AlertaApiController extends Controller
     {
         $usuario = $request->user();
 
-        $query = Alerta::with(['bomba:id,codigo,nombre,centros_salud_id', 'sensor:id,nombre', 'usuarioAtencion'])
+        $query = Alerta::visiblesPara($usuario)
+            ->with(['bomba:id,codigo,nombre,centros_salud_id', 'sensor:id,nombre', 'usuarioAtencion'])
             ->orderBy('fecha_hora', 'desc');
-
-        if (! $usuario->esAdministrador()) {
-            $query->whereHas('bomba', function ($q) use ($usuario) {
-                $q->where('centros_salud_id', $usuario->centros_salud_id);
-            });
-        }
 
         if ($request->boolean('pendientes')) {
             $query->where('atendida', false);
@@ -45,8 +40,7 @@ class AlertaApiController extends Controller
         $usuario = $request->user();
         $alerta->load('bomba:id,codigo,nombre,centros_salud_id');
 
-        if (! $usuario->esAdministrador()
-            && $alerta->bomba?->centros_salud_id !== $usuario->centros_salud_id) {
+        if (! $usuario->puedeVerCentro($alerta->bomba?->centros_salud_id)) {
             return response()->json(['mensaje' => 'No tienes permiso sobre esta alerta.'], 403);
         }
 

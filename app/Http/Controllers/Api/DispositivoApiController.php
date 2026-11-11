@@ -61,6 +61,11 @@ class DispositivoApiController extends Controller
             'fecha_hora' => now(),
         ]);
 
+        if ($sensor->tipo === 'nivel') {
+            app(\App\Services\NivelUltrasonicoTanque::class)->procesar($sensor, $lectura);
+        }
+
+
         $alertaGenerada = $this->evaluarYGenerarAlerta($lectura, $sensor);
 
         return response()->json([

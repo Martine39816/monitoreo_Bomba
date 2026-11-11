@@ -176,8 +176,25 @@
                             ->map(fn ($f) => $caudal !== null ? ($f['litros'] ?? 0) : $f['segundos'])
                             ->max() ?: 1;
                     @endphp
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Evolución diaria</h3>
+                                <p class="text-xs text-gray-500 mt-1">{{ $caudal !== null ? 'Litros estimados bombeados por día' : 'Tiempo de funcionamiento de la bomba por día' }}</p>
+                            </div>
+                            <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-bold text-teal-800">{{ $titulo }}</span>
+                        </div>
+                        <div class="relative h-64 sm:h-72">
+                            <canvas id="grafico-consumo"
+                                data-labels="{{ json_encode(collect($resultado['dias'])->pluck('etiqueta')->values()) }}"
+                                data-valores="{{ json_encode(collect($resultado['dias'])->map(fn ($f) => $caudal !== null ? round((float) ($f['litros'] ?? 0), 2) : round((float) $f['segundos'] / 60, 2))->values()) }}"
+                                data-unidad="{{ $caudal !== null ? 'L' : 'min' }}"></canvas>
+                        </div>
+                    </div>
+
                     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <h3 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-2 mb-3">Día por día</h3>
+                        <h3 class="text-lg font-bold text-gray-800 border-b border-gray-100 pb-2 mb-3">Detalle día por día</h3>
+                        <div class="overflow-x-auto">
                         <table class="w-full text-sm">
                             <thead>
                                 <tr class="text-xs uppercase tracking-wide text-gray-400 text-left">
@@ -208,6 +225,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        </div>
                     </div>
                 @endif
 

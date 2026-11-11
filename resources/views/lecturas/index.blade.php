@@ -74,14 +74,15 @@
                             <p class="text-sm text-gray-400">Últimas {{ count($datosGrafico) }} lecturas</p>
                         </div>
                     </div>
-                    <canvas
-                        id="grafico-lecturas"
-                        height="80"
-                        data-labels="{{ json_encode($datosGrafico->pluck('hora')) }}"
-                        data-valores="{{ json_encode($datosGrafico->pluck('valor')) }}"
-                        data-unidad="{{ $sensorGrafico->unidad_medida }}"
-                        data-sensor="{{ $sensorGrafico->nombre }}"
-                    ></canvas>
+                    <div class="relative h-64 sm:h-52 w-full">
+                        <canvas
+                            id="grafico-lecturas"
+                            data-labels="{{ json_encode($datosGrafico->pluck('hora')) }}"
+                            data-valores="{{ json_encode($datosGrafico->pluck('valor')) }}"
+                            data-unidad="{{ $sensorGrafico->unidad_medida }}"
+                            data-sensor="{{ $sensorGrafico->nombre }}"
+                        ></canvas>
+                    </div>
                 @elseif ($sensorGrafico)
                     <p class="text-center text-gray-400 py-8">Este sensor todavía no tiene lecturas registradas.</p>
                 @else

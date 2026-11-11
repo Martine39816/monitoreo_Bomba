@@ -20,7 +20,10 @@ class AlertaController extends Controller
 
     public function index(Request $request): View
     {
-        $query = Alerta::with('bomba', 'sensor', 'usuarioAtencion')->orderBy('fecha_hora', 'desc');
+        // Administrador y Técnico ven todas; el Director solo las de su centro.
+        $query = Alerta::visiblesPara($request->user())
+            ->with('bomba', 'sensor', 'usuarioAtencion')
+            ->orderBy('fecha_hora', 'desc');
 
         if ($request->input('filtro') === 'pendientes') {
             $query->where('atendida', false);
@@ -31,11 +34,13 @@ class AlertaController extends Controller
         return view('alertas.index', compact('alertas'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
+        $usuario = $request->user();
+
         return view('alertas.create', [
-            'bombas' => Bomba::orderBy('nombre')->get(),
-            'sensores' => Sensor::orderBy('nombre')->get(),
+            'bombas' => Bomba::visiblesPara($usuario)->orderBy('nombre')->get(),
+            'sensores' => Sensor::visiblesPara($usuario)->orderBy('nombre')->get(),
             'tipos' => self::TIPOS,
         ]);
     }
@@ -49,6 +54,9 @@ class AlertaController extends Controller
             'sensores_id' => ['nullable', 'exists:sensores,id'],
         ]);
 
+        // Un director solo puede reportar problemas de las bombas de su centro.
+        $this->authorize('view', Bomba::findOrFail($validated['bombas_id']));
+
         Alerta::create([
             'tipo' => $validated['tipo'],
             'descripcion' => $validated['descripcion'],
@@ -61,8 +69,10 @@ class AlertaController extends Controller
         return redirect()->route('alertas.index')->with('status', 'Alerta reportada correctamente.');
     }
 
-    public function show(Alerta $alerta): View
+    public function show(Request $request, Alerta $alerta): View
     {
+        $this->asegurarAlcance($request, $alerta);
+
         $alerta->load('bomba', 'sensor', 'usuarioAtencion');
 
         return view('alertas.show', compact('alerta'));
@@ -70,6 +80,8 @@ class AlertaController extends Controller
 
     public function atender(Request $request, Alerta $alerta): RedirectResponse
     {
+        $this->asegurarAlcance($request, $alerta);
+
         $alerta->update([
             'atendida' => true,
             'fecha_atencion' => now(),
@@ -77,5 +89,17 @@ class AlertaController extends Controller
         ]);
 
         return redirect()->route('alertas.index')->with('status', 'Alerta marcada como solucionada.');
+    }
+
+    /** Evita acceder por URL a alertas de otro centro (solo aplica al Director). */
+    private function asegurarAlcance(Request $request, Alerta $alerta): void
+    {
+        $alerta->loadMissing('bomba:id,centros_salud_id');
+
+        abort_unless(
+            $request->user()->puedeVerCentro($alerta->bomba?->centros_salud_id),
+            403,
+            'No tienes permiso sobre esta alerta.'
+        );
     }
 }

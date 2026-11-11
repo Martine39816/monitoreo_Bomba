@@ -22,18 +22,7 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($usuario->esAdministrador()) {
-
-            $centros = CentroSalud::orderBy('nombre')->get();
-
-        } else {
-
-            $centros = CentroSalud::where(
-                'id',
-                $usuario->centros_salud_id
-            )->get();
-
-        }
+        $centros = CentroSalud::visiblesPara($usuario)->orderBy('nombre')->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -41,24 +30,8 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $bombasBaseQuery = Bomba::query();
-
-        if (! $usuario->esAdministrador()) {
-
-            if ($usuario->centros_salud_id) {
-
-                $bombasBaseQuery->where(
-                    'centros_salud_id',
-                    $usuario->centros_salud_id
-                );
-
-            } else {
-
-                // Usuario sin centro asignado: no mostrar bombas.
-                $bombasBaseQuery->whereRaw('1 = 0');
-
-            }
-        }
+        // Administrador y Técnico: todas las bombas. Director: solo las de su centro.
+        $bombasBaseQuery = Bomba::visiblesPara($usuario);
 
         /*
         |--------------------------------------------------------------------------
@@ -87,20 +60,9 @@ class DashboardController extends Controller
             ->where('funcionando', true)
             ->count();
 
-        $alertasQuery = Alerta::with(['sensor', 'bomba'])
-            ->where('atendida', false)
-            ->whereHas('bomba', function ($q) use ($usuario) {
-
-                if (! $usuario->esAdministrador()) {
-
-                    $q->where(
-                        'centros_salud_id',
-                        $usuario->centros_salud_id
-                    );
-
-                }
-
-            });
+        $alertasQuery = Alerta::visiblesPara($usuario)
+            ->with(['sensor', 'bomba'])
+            ->where('atendida', false);
 
         $totalAlertasPendientes = (clone $alertasQuery)->count();
 
@@ -113,7 +75,7 @@ class DashboardController extends Controller
             'bombas_total' => $bombasTotal,
             'bombas_encendidas' => $bombasFuncionando,
             'alertas_pendientes' => $totalAlertasPendientes,
-            'centros_total' => $usuario->esAdministrador()
+            'centros_total' => $usuario->veTodosLosCentros()
                 ? CentroSalud::count()
                 : null,
         ];
@@ -137,11 +99,11 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         | 5. FILTRO POR CENTRO DE SALUD
         |--------------------------------------------------------------------------
-        | Solo el administrador puede elegir otro centro.
+        | Administrador y técnico pueden elegir cualquier centro.
         */
 
         if (
-            $usuario->esAdministrador() &&
+            $usuario->veTodosLosCentros() &&
             $request->filled('centro')
         ) {
 
@@ -225,6 +187,14 @@ class DashboardController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        // Actualizar el nivel estimado del tanque de las bombas visibles.
+        // Se conserva el servicio existente y se ejecuta antes de renderizar la vista.
+        $estimadorNivel = app(NivelTanqueEstimado::class);
+
+        foreach ($bombas as $bomba) {
+            $bomba->nivel_tanque_estimado_datos = $estimadorNivel->actualizar($bomba);
+        }
+
         return view('dashboard', compact(
             'bombas',
             'centros',
@@ -232,12 +202,5 @@ class DashboardController extends Controller
             'alertasPendientes',
             'metricas'
         ));
-        // Actualizar el nivel estimado del tanque de cada bomba.
-        $estimadorNivel = app(\App\Services\NivelTanqueEstimado::class);
-
-        foreach ($bombas as $bomba) {
-            $bomba->nivel_tanque_estimado_datos =
-            $estimadorNivel->actualizar($bomba);
-        }
     }
 }

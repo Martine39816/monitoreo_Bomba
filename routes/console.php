@@ -10,4 +10,6 @@ Artisan::command('inspire', function () {
 
 // Revisa cada minuto el comportamiento de las bombas (tiempo encendida,
 // ciclos frecuentes, riesgo de rebalse) y genera alertas automaticas.
-Schedule::command('bombas:analizar-comportamiento')->everyMinute();
+//Schedule::command('bombas:analizar-comportamiento')->everyMinute();
+Schedule::command('sensores:detectar-comunicacion')->everyMinute()->withoutOverlapping();
+Schedule::command('bombas:analizar-comportamiento')->everyMinute()->withoutOverlapping();

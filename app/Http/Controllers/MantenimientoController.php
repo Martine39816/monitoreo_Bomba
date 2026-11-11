@@ -14,9 +14,10 @@ class MantenimientoController extends Controller
 {
     private const TIPOS = ['preventivo', 'correctivo', 'predictivo', 'emergencia'];
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $mantenimientos = Mantenimiento::with('bomba', 'usuario', 'alerta')
+        $mantenimientos = Mantenimiento::visiblesPara($request->user())
+            ->with('bomba.centroSalud', 'usuario', 'alerta')
             ->orderBy('fecha', 'desc')
             ->get();
 
@@ -25,11 +26,13 @@ class MantenimientoController extends Controller
 
     public function create(Request $request): View
     {
-        $bombas = Bomba::orderBy('nombre')->get();
+        // El técnico (y el administrador) pueden elegir la bomba de CUALQUIER centro.
+        $bombas = Bomba::visiblesPara($request->user())->with('centroSalud')->orderBy('nombre')->get();
 
         // Si se llega desde una alerta ("Generar mantenimiento"), se preselecciona
         $alertaId = $request->query('alerta_id');
-        $alertasAbiertas = Alerta::whereDoesntHave('mantenimientos')
+        $alertasAbiertas = Alerta::visiblesPara($request->user())
+            ->whereDoesntHave('mantenimientos')
             ->orderBy('fecha_hora', 'desc')
             ->get();
 
@@ -44,6 +47,7 @@ class MantenimientoController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validarDatos($request);
+        $this->asegurarBombaVisible($request, (int) $validated['bombas_id']);
         $validated['usuarios_id'] = $request->user()->id;
 
         Mantenimiento::create($validated);
@@ -51,17 +55,21 @@ class MantenimientoController extends Controller
         return redirect()->route('mantenimientos.index')->with('status', 'Mantenimiento registrado correctamente.');
     }
 
-    public function show(Mantenimiento $mantenimiento): View
+    public function show(Request $request, Mantenimiento $mantenimiento): View
     {
+        $this->asegurarAlcance($request, $mantenimiento);
+
         $mantenimiento->load('bomba', 'usuario', 'alerta');
 
         return view('mantenimientos.show', compact('mantenimiento'));
     }
 
-    public function edit(Mantenimiento $mantenimiento): View
+    public function edit(Request $request, Mantenimiento $mantenimiento): View
     {
-        $bombas = Bomba::orderBy('nombre')->get();
-        $alertasAbiertas = Alerta::where(function ($q) use ($mantenimiento) {
+        $this->asegurarAlcance($request, $mantenimiento);
+
+        $bombas = Bomba::visiblesPara($request->user())->with('centroSalud')->orderBy('nombre')->get();
+        $alertasAbiertas = Alerta::visiblesPara($request->user())->where(function ($q) use ($mantenimiento) {
             $q->whereDoesntHave('mantenimientos')
                 ->orWhere('id', $mantenimiento->alertas_id);
         })->orderBy('fecha_hora', 'desc')->get();
@@ -76,15 +84,20 @@ class MantenimientoController extends Controller
 
     public function update(Request $request, Mantenimiento $mantenimiento): RedirectResponse
     {
+        $this->asegurarAlcance($request, $mantenimiento);
+
         $validated = $this->validarDatos($request);
+        $this->asegurarBombaVisible($request, (int) $validated['bombas_id']);
 
         $mantenimiento->update($validated);
 
         return redirect()->route('mantenimientos.index')->with('status', 'Mantenimiento actualizado correctamente.');
     }
 
-    public function destroy(Mantenimiento $mantenimiento): RedirectResponse
+    public function destroy(Request $request, Mantenimiento $mantenimiento): RedirectResponse
     {
+        $this->asegurarAlcance($request, $mantenimiento);
+
         $mantenimiento->delete();
 
         return redirect()->route('mantenimientos.index')->with('status', 'Mantenimiento eliminado.');
@@ -101,5 +114,24 @@ class MantenimientoController extends Controller
             'bombas_id' => ['required', 'exists:bombas,id'],
             'alertas_id' => ['nullable', 'exists:alertas,id'],
         ]);
+    }
+
+    /** Evita acceder por URL a mantenimientos de otro centro (solo aplica al Director). */
+    private function asegurarAlcance(Request $request, Mantenimiento $mantenimiento): void
+    {
+        $mantenimiento->loadMissing('bomba:id,centros_salud_id');
+
+        abort_unless(
+            $request->user()->puedeVerCentro($mantenimiento->bomba?->centros_salud_id),
+            403,
+            'No tienes permiso sobre este mantenimiento.'
+        );
+    }
+
+    private function asegurarBombaVisible(Request $request, int $bombaId): void
+    {
+        $bomba = Bomba::findOrFail($bombaId);
+
+        abort_unless($request->user()->puedeVerCentro($bomba->centros_salud_id), 403);
     }
 }

@@ -42,4 +42,16 @@ class DispositivoIot extends Model
 
         return $plain; // el texto plano solo se entrega aqui, nunca se vuelve a mostrar
     }
+
+    /** Dispositivos visibles: todos (administrador/tecnico) o solo los de su centro (director). */
+    public function scopeVisiblesPara($query, User $usuario)
+    {
+        if ($usuario->veTodosLosCentros()) {
+            return $query;
+        }
+
+        return $usuario->centros_salud_id
+            ? $query->where($this->qualifyColumn('centros_salud_id'), $usuario->centros_salud_id)
+            : $query->whereRaw('1 = 0');
+    }
 }

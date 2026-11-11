@@ -37,5 +37,14 @@ return [
         // Segundos sin señal del sensor de corriente tras los cuales la bomba
     // se considera detenida aunque la base de datos diga "funcionando".
     'corriente_sin_senal_segundos' => (int) env('BOMBA_SIN_SENAL_SEG', 120),
+    // Tiempo máximo sin lecturas antes de marcar sensor sin comunicación.
+    'sensor_sin_comunicacion_minutos' => (int) env('SENSOR_SIN_COMUNICACION_MIN', 5),
+    // Calibración del prototipo cilíndrico de 50 L.
+    'ultrasonico' => [
+        'distancia_lleno_cm' => (float) env('TANQUE_DISTANCIA_LLENO_CM', 2),
+        'distancia_vacio_cm' => (float) env('TANQUE_DISTANCIA_VACIO_CM', 52),
+        'caida_alerta_pct' => (float) env('TANQUE_CAIDA_ALERTA_PCT', 10),
+        'ventana_alerta_minutos' => (int) env('TANQUE_VENTANA_ALERTA_MIN', 10),
+    ],
 
 ];

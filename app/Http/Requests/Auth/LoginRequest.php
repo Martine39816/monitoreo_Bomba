@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,9 +18,7 @@ class LoginRequest extends FormRequest
         return true;
     }
 
-    /**
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
+    /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
         return [
@@ -28,39 +27,45 @@ class LoginRequest extends FormRequest
         ];
     }
 
-    /**
-     * Autentica contra la columna 'correo' de la tabla 'usuarios'.
-     * El campo del formulario sigue llamandose 'email' para no tener
-     * que tocar las vistas Blade de Breeze.
-     *
-     * @throws ValidationException
-     */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
+        $correo = (string) $this->input('email');
+        $usuario = User::where('correo', $correo)->first();
+
+        // Se rechaza la cuenta inactiva antes de crear una sesión.
+        if ($usuario && ! $usuario->estado) {
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'email' => ['Esta cuenta se encuentra desactivada. Comunícate con el administrador.'],
+            ]);
+        }
+
         $credentials = [
-            'correo' => $this->input('email'),
+            'correo' => $correo,
             'password' => $this->input('password'),
         ];
 
         if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
-
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        // Segunda comprobación por seguridad, por si el estado cambió durante el login.
+        if (! Auth::user()->estado) {
+            Auth::logout();
+            throw ValidationException::withMessages([
+                'email' => ['Esta cuenta se encuentra desactivada. Comunícate con el administrador.'],
+            ]);
+        }
 
-        // Registro de ultimo acceso (trazabilidad basica)
+        RateLimiter::clear($this->throttleKey());
         Auth::user()->forceFill(['ultimo_acceso' => now()])->save();
     }
 
-    /**
-     * @throws ValidationException
-     */
     public function ensureIsNotRateLimited(): void
     {
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
@@ -68,7 +73,6 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
-
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([

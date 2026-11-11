@@ -16,7 +16,7 @@ class Alerta extends Model
     public const TIPOS = [
         'nivel_bajo', 'nivel_alto', 'bomba_apagada', 'falla_electrica',
         'sobrecorriente', 'temperatura_alta', 'vibracion_alta', 'sensor_desconectado',
-        'tiempo_excedido', 'ciclos_frecuentes', 'posible_rebalse',
+        'tiempo_excedido', 'ciclos_frecuentes', 'posible_rebalse','consumo_excesivo',
     ];
 
     protected $fillable = [
@@ -47,5 +47,15 @@ class Alerta extends Model
     public function mantenimientos(): HasMany       
     {
         return $this->hasMany(Mantenimiento::class, 'alertas_id');
+    }
+
+    /** Registros visibles segun el centro de la bomba asociada. */
+    public function scopeVisiblesPara($query, User $usuario)
+    {
+        if ($usuario->veTodosLosCentros()) {
+            return $query;
+        }
+
+        return $query->whereHas('bomba', fn ($q) => $q->visiblesPara($usuario));
     }
 }

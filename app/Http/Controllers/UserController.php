@@ -102,19 +102,35 @@ class UserController extends Controller
             $user->password = $validated['password'];
         }
 
+        if ($user->isDirty('estado')) {
+    if ($user->estado === false) {
+        $user->inactivado_en = now();
+    }
+    }
+
         $user->save();
 
         return redirect()->route('users.index')->with('status', 'Usuario actualizado correctamente.');
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
-    {
-        if ($request->user()->id === $user->id) {
-            return back()->withErrors(['delete' => 'No puedes eliminar tu propia cuenta mientras estas conectado.']);
-        }
+{
+    if ($request->user()->id === $user->id) {
+        return back()->withErrors([
+            'delete' => 'No puedes desactivar tu propia cuenta mientras estas conectado.'
+        ]);
+    }
 
-        $user->delete();
+    if (!$user->estado) {
+        return redirect()->route('users.index')
+            ->with('status', 'Este usuario ya se encuentra inactivo.');
+    }
 
-        return redirect()->route('users.index')->with('status', 'Usuario eliminado.');
+    $user->estado = false;
+    $user->inactivado_en = now();
+    $user->save();
+
+    return redirect()->route('users.index')
+        ->with('status', 'Usuario desactivado correctamente. Se conservó su registro.');
     }
 }

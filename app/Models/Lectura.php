@@ -25,4 +25,14 @@ class Lectura extends Model
     {
         return $this->belongsTo(Sensor::class, 'sensores_id');
     }
+
+    /** Lecturas visibles segun el centro de la bomba del sensor. */
+    public function scopeVisiblesPara($query, User $usuario)
+    {
+        if ($usuario->veTodosLosCentros()) {
+            return $query;
+        }
+
+        return $query->whereHas('sensor', fn ($q) => $q->visiblesPara($usuario));
+    }
 }

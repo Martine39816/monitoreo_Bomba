@@ -21,14 +21,9 @@ class ConsumoController extends Controller
 
         [$periodo, $desde, $hasta, $titulo] = $this->resolverPeriodo($request);
 
-        $centros = CentroSalud::orderBy('nombre');
-        $bombas = Bomba::orderBy('nombre');
-
-        // Solo el Administrador ve los centros y bombas de todo el sistema.
-        if (! $usuario->esAdministrador()) {
-            $centros->where('id', $usuario->centros_salud_id);
-            $bombas->where('centros_salud_id', $usuario->centros_salud_id);
-        }
+        // Administrador y Técnico ven todos los centros; el Director solo el suyo.
+        $centros = CentroSalud::visiblesPara($usuario)->orderBy('nombre');
+        $bombas = Bomba::visiblesPara($usuario)->orderBy('nombre');
 
         $centros = $centros->get(['id', 'nombre']);
         $todas = $bombas->get(['id', 'nombre', 'codigo', 'centros_salud_id']);

@@ -16,6 +16,15 @@
                 <div><span class="font-semibold">Rol:</span> <span class="capitalize">{{ $user->rol }}</span></div>
                 <div><span class="font-semibold">Centro de Salud:</span> {{ $user->centroSalud->nombre ?? '—' }}</div>
                 <div><span class="font-semibold">Estado:</span> {{ $user->estado ? 'Activo' : 'Inactivo' }}</div>
+                <div>
+    <span class="font-semibold">Fecha de registro:</span>
+    {{ $user->created_at?->format('d/m/Y H:i') ?? '—' }}
+</div>
+
+<div>
+    <span class="font-semibold">Fecha de inactivación:</span>
+    {{ $user->inactivado_en?->format('d/m/Y H:i') ?? 'Nunca' }}
+</div>
                 <div><span class="font-semibold">Último acceso:</span> {{ $user->ultimo_acceso?->format('d/m/Y H:i') ?? 'Nunca' }}</div>
 
                 <div class="pt-4">
